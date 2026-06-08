@@ -61,7 +61,7 @@ export default async function DealsPage() {
                   <td className="px-4 py-3 text-gray-600 hidden md:table-cell">{deal.client?.name ?? '—'}</td>
                   <td className="px-4 py-3 hidden md:table-cell">
                     {deal.solution ? (
-                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${deal.solution.color}20`, color: deal.solution.color }}>{deal.solution.name}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${deal.solution.color}20`, color: deal.solution.color ?? undefined }}>{deal.solution.name}</span>
                     ) : '-'}
                   </td>
                   <td className="px-4 py-3 font-medium text-gray-900">{formatCurrency(deal.value ? Number(deal.value) : null)}</td>

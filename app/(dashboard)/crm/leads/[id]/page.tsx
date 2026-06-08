@@ -19,8 +19,9 @@ async function getLead(id: string) {
   })
 }
 
-export default async function LeadDetailPage({ params }: { params: { id: string } }) {
-  const lead = await getLead(params.id)
+export default async function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const lead = await getLead(id)
   if (!lead) notFound()
 
   const stage = PIPELINE_STAGES.find(s => s.key === lead.status)
@@ -45,7 +46,7 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
                   <p className="text-gray-500">{lead.company}</p>
                 </div>
                 {stage && (
-                  <span className="text-xs px-3 py-1 rounded-full font-medium" style={{ backgroundColor: `${stage.color}20`, color: stage.color }}>
+                  <span className="text-xs px-3 py-1 rounded-full font-medium" style={{ backgroundColor: `${stage.color}20`, color: stage.color ?? undefined }}>
                     {stage.label}
                   </span>
                 )}
@@ -90,7 +91,7 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
             <div className="bg-white rounded-xl border border-gray-200 p-4">
               <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Solução PixelSAV</p>
               {lead.solution ? (
-                <span className="inline-block text-sm px-3 py-1.5 rounded-lg font-medium" style={{ backgroundColor: `${lead.solution.color}20`, color: lead.solution.color }}>
+                <span className="inline-block text-sm px-3 py-1.5 rounded-lg font-medium" style={{ backgroundColor: `${lead.solution.color}20`, color: lead.solution.color ?? undefined }}>
                   {lead.solution.name}
                 </span>
               ) : <p className="text-sm text-gray-500">Não definida</p>}

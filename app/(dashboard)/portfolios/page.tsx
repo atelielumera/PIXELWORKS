@@ -34,7 +34,7 @@ export default async function PortfoliosPage() {
                   <Link key={pp.projectId} href={`/projects/${pp.project.id}`} className="flex items-center justify-between py-1.5 hover:text-blue-600">
                     <span className="text-sm">{pp.project.name}</span>
                     {pp.project.solution && (
-                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${pp.project.solution.color}20`, color: pp.project.solution.color }}>
+                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${pp.project.solution.color}20`, color: pp.project.solution.color ?? undefined }}>
                         {pp.project.solution.name}
                       </span>
                     )}

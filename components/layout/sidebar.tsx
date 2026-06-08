@@ -79,7 +79,7 @@ export function Sidebar() {
         {nav.map(item => {
           if ('children' in item) {
             const isOpen = expanded.includes(item.name)
-            const isActive = item.children.some(c => pathname.startsWith(c.href))
+            const isActive = item.children?.some(c => pathname.startsWith(c.href))
             return (
               <div key={item.name}>
                 <button
@@ -97,7 +97,7 @@ export function Sidebar() {
                 </button>
                 {isOpen && (
                   <div className="ml-5 mt-0.5 space-y-0.5 pl-3 border-l border-gray-800">
-                    {item.children.map(child => (
+                    {item.children?.map(child => (
                       <Link
                         key={child.href} href={child.href}
                         className={cn(

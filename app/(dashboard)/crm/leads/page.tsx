@@ -33,8 +33,9 @@ const STATUS_STYLES: Record<string, string> = {
   NO_FIT: 'bg-gray-50 text-gray-600',
 }
 
-export default async function LeadsPage({ searchParams }: { searchParams: { status?: string } }) {
-  const leads = await getLeads(searchParams.status)
+export default async function LeadsPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
+  const { status } = await searchParams
+  const leads = await getLeads(status)
 
   return (
     <div>
@@ -44,12 +45,12 @@ export default async function LeadsPage({ searchParams }: { searchParams: { stat
         {/* Filter chips */}
         <div className="flex gap-2 mb-5 flex-wrap">
           <Link href="/crm/leads" className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${
-            !searchParams.status ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+            !status ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-600 hover:border-gray-300'
           }`}>Todos</Link>
           {PIPELINE_STAGES.filter(s => !['WON', 'LOST', 'NO_FIT'].includes(s.key)).map(s => (
             <Link key={s.key} href={`/crm/leads?status=${s.key}`}
               className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${
-                searchParams.status === s.key ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                status === s.key ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-600 hover:border-gray-300'
               }`}
             >{s.label}</Link>
           ))}
@@ -88,7 +89,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: { stat
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
                     {lead.solution ? (
-                      <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: `${lead.solution.color}20`, color: lead.solution.color }}>
+                      <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: `${lead.solution.color}20`, color: lead.solution.color ?? undefined }}>
                         {lead.solution.name}
                       </span>
                     ) : <span className="text-gray-400">-</span>}

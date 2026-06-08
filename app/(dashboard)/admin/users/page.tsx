@@ -5,7 +5,7 @@ import { formatDate } from '@/lib/utils'
 async function getUsers() {
   return prisma.user.findMany({
     orderBy: { name: 'asc' },
-    select: { id: true, name: true, email: true, role: true, department: true, isActive: true, createdAt: true, _count: { select: { assignedTasks: true } } },
+    select: { id: true, name: true, email: true, role: true, department: true, isActive: true, createdAt: true, _count: { select: { taskAssignments: true } } },
   })
 }
 

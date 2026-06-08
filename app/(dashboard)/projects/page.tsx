@@ -27,8 +27,9 @@ const HEALTH_STYLE: Record<string, string> = {
   CRITICAL: 'text-red-600',
 }
 
-export default async function ProjectsPage({ searchParams }: { searchParams: { status?: string; health?: string } }) {
-  const projects = await getProjects(searchParams.status, searchParams.health)
+export default async function ProjectsPage({ searchParams }: { searchParams: Promise<{ status?: string; health?: string }> }) {
+  const { status, health } = await searchParams
+  const projects = await getProjects(status, health)
 
   return (
     <div>
@@ -36,12 +37,12 @@ export default async function ProjectsPage({ searchParams }: { searchParams: { s
       <div className="p-6">
         <div className="flex gap-2 mb-5 flex-wrap">
           <Link href="/projects" className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${
-            !searchParams.status ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+            !status ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-600 hover:border-gray-300'
           }`}>Todos</Link>
           {PROJECT_STATUSES.map(s => (
             <Link key={s.key} href={`/projects?status=${s.key}`}
               className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${
-                searchParams.status === s.key ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                status === s.key ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-600 hover:border-gray-300'
               }`}
             >{s.label}</Link>
           ))}
@@ -76,12 +77,12 @@ export default async function ProjectsPage({ searchParams }: { searchParams: { s
                 </div>
                 {project.solution && (
                   <span className="text-xs px-2 py-0.5 rounded-full mb-3 inline-block"
-                    style={{ backgroundColor: `${project.solution.color}20`, color: project.solution.color }}>
+                    style={{ backgroundColor: `${project.solution.color}20`, color: project.solution.color ?? undefined }}>
                     {project.solution.name}
                   </span>
                 )}
                 <div className="flex items-center justify-between mt-3">
-                  <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${status?.color}20`, color: status?.color }}>
+                  <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${status?.color}20`, color: status?.color ?? undefined }}>
                     {status?.label}
                   </span>
                   <span className="text-xs text-gray-500">{project._count.tasks} tarefas</span>

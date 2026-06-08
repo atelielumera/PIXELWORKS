@@ -1,9 +1,8 @@
 import { Header } from '@/components/layout/header'
 import { prisma } from '@/lib/db'
 import { formatDate, formatDateTime } from '@/lib/utils'
-import { EVENT_TYPES } from '@/lib/constants'
 
-export const EVENT_TYPE_LABELS: Record<string, string> = {
+const EVENT_TYPE_LABELS: Record<string, string> = {
   EVENT: 'Evento', SETUP: 'Montagem', OPERATION: 'Operação', TEARDOWN: 'Desmontagem',
   MEETING: 'Reunião', DEADLINE: 'Prazo', FOLLOW_UP: 'Follow-up',
   CONTENT_DELIVERY: 'Entrega de Conteúdo', CONTRACT_EXPIRY: 'Venc. Contrato',

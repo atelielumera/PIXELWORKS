@@ -82,7 +82,7 @@ export default async function FinancialsPage() {
                       </td>
                       <td className="px-4 py-3">
                         {p.solution && (
-                          <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${p.solution.color}20`, color: p.solution.color }}>{p.solution.name}</span>
+                          <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${p.solution.color}20`, color: p.solution.color ?? undefined }}>{p.solution.name}</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-right text-gray-700">{budget > 0 ? formatCurrency(budget) : '-'}</td>

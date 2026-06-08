@@ -29,8 +29,9 @@ const PRIORITY_LABEL: Record<string, string> = {
   LOW: 'Baixa', MEDIUM: 'Média', HIGH: 'Alta', URGENT: 'Urgente'
 }
 
-export default async function TasksPage({ searchParams }: { searchParams: { status?: string; projectId?: string } }) {
-  const tasks = await getTasks(searchParams.status, searchParams.projectId)
+export default async function TasksPage({ searchParams }: { searchParams: Promise<{ status?: string; projectId?: string }> }) {
+  const { status, projectId } = await searchParams
+  const tasks = await getTasks(status, projectId)
   const now = new Date()
 
   return (
@@ -38,10 +39,10 @@ export default async function TasksPage({ searchParams }: { searchParams: { stat
       <Header title="Tarefas" subtitle={`${tasks.length} tarefas`} />
       <div className="p-6">
         <div className="flex gap-2 mb-5 flex-wrap">
-          <Link href="/tasks" className={`px-3 py-1.5 text-xs rounded-full border ${ !searchParams.status ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-600' }`}>Todas</Link>
+          <Link href="/tasks" className={`px-3 py-1.5 text-xs rounded-full border ${ !status ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-600' }`}>Todas</Link>
           {TASK_STATUSES.map(s => (
             <Link key={s.key} href={`/tasks?status=${s.key}`}
-              className={`px-3 py-1.5 text-xs rounded-full border ${ searchParams.status === s.key ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-600' }`}>{s.label}</Link>
+              className={`px-3 py-1.5 text-xs rounded-full border ${ status === s.key ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-600' }`}>{s.label}</Link>
           ))}
         </div>
 
@@ -79,7 +80,7 @@ export default async function TasksPage({ searchParams }: { searchParams: { stat
                       {task.project ? <Link href={`/projects/${task.project.id}`} className="hover:text-blue-600">{task.project.name}</Link> : '—'}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${ts?.color}20`, color: ts?.color }}>{ts?.label}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${ts?.color}20`, color: ts?.color ?? undefined }}>{ts?.label}</span>
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell">
                       <span className={`text-xs font-medium ${PRIORITY_STYLE[task.priority]}`}>{PRIORITY_LABEL[task.priority]}</span>

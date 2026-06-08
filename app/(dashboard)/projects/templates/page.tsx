@@ -21,7 +21,7 @@ export default async function TemplatesPage() {
                 <div>
                   <h3 className="font-semibold text-gray-900 text-sm">{tpl.name}</h3>
                   {tpl.solution && (
-                    <span className="text-xs mt-1 px-2 py-0.5 rounded-full inline-block" style={{ backgroundColor: `${tpl.solution.color}20`, color: tpl.solution.color }}>
+                    <span className="text-xs mt-1 px-2 py-0.5 rounded-full inline-block" style={{ backgroundColor: `${tpl.solution.color}20`, color: tpl.solution.color ?? undefined }}>
                       {tpl.solution.name}
                     </span>
                   )}

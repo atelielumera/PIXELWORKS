@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const project = await prisma.project.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       client: true, solution: true, deal: true, contract: true,
       members: { include: { user: true } },
@@ -15,27 +16,27 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   return NextResponse.json({ data: project })
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const body = await req.json()
   const project = await prisma.project.update({
-    where: { id: params.id },
+    where: { id },
     data: {
       ...body,
       approvedBudget: body.approvedBudget != null ? parseFloat(body.approvedBudget) : undefined,
       eventDate: body.eventDate ? new Date(body.eventDate) : undefined,
     },
   })
-  // Atualizar saúde do projeto com base nas tarefas atrasadas
   const overdueTasks = await prisma.task.count({
-    where: { projectId: params.id, status: { notIn: ['DONE', 'CANCELLED'] }, dueDate: { lt: new Date() } },
+    where: { projectId: id, status: { notIn: ['DONE', 'CANCELLED'] }, dueDate: { lt: new Date() } },
   })
-  const totalTasks = await prisma.task.count({ where: { projectId: params.id } })
+  const totalTasks = await prisma.task.count({ where: { projectId: id } })
   let health: 'GOOD' | 'AT_RISK' | 'CRITICAL' = 'GOOD'
   if (totalTasks > 0) {
     const ratio = overdueTasks / totalTasks
     if (ratio > 0.5) health = 'CRITICAL'
     else if (ratio > 0.2) health = 'AT_RISK'
   }
-  await prisma.project.update({ where: { id: params.id }, data: { health } })
+  await prisma.project.update({ where: { id }, data: { health } })
   return NextResponse.json({ data: project })
 }

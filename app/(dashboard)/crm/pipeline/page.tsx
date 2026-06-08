@@ -47,7 +47,7 @@ export default async function PipelinePage() {
                       <p className="text-xs font-semibold text-gray-900">{lead.contactName}</p>
                       <p className="text-xs text-gray-500 mt-0.5">{lead.company ?? '—'}</p>
                       {lead.solution && (
-                        <span className="inline-block mt-2 text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: `${lead.solution.color}20`, color: lead.solution.color }}>
+                        <span className="inline-block mt-2 text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: `${lead.solution.color}20`, color: lead.solution.color ?? undefined }}>
                           {lead.solution.name}
                         </span>
                       )}

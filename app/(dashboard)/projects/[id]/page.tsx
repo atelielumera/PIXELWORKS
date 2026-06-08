@@ -17,7 +17,7 @@ async function getProject(id: string) {
       members: { include: { user: { select: { id: true, name: true, avatar: true } } } },
       tasks: {
         where: { parentId: null },
-        orderBy: [{ status: 'asc' }, { sortOrder: 'asc' }],
+        orderBy: [{ status: 'asc' }, { createdAt: 'asc' }],
         include: { assignees: { include: { user: { select: { id: true, name: true } } } }, _count: { select: { subtasks: true } } },
         take: 100,
       },
@@ -28,8 +28,9 @@ async function getProject(id: string) {
   })
 }
 
-export default async function ProjectDetailPage({ params }: { params: { id: string } }) {
-  const project = await getProject(params.id)
+export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const project = await getProject(id)
   if (!project) notFound()
 
   const status = PROJECT_STATUSES.find(s => s.key === project.status)
@@ -60,11 +61,11 @@ export default async function ProjectDetailPage({ params }: { params: { id: stri
               <div className="flex items-center gap-3 flex-wrap">
                 <h2 className="text-xl font-bold text-gray-900">{project.name}</h2>
                 {project.solution && (
-                  <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ backgroundColor: `${project.solution.color}20`, color: project.solution.color }}>
+                  <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ backgroundColor: `${project.solution.color}20`, color: project.solution.color ?? undefined }}>
                     {project.solution.name}
                   </span>
                 )}
-                <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ backgroundColor: `${status?.color}20`, color: status?.color }}>
+                <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ backgroundColor: `${status?.color}20`, color: status?.color ?? undefined }}>
                   {status?.label}
                 </span>
               </div>
@@ -124,7 +125,7 @@ export default async function ProjectDetailPage({ params }: { params: { id: stri
                             {task._count.subtasks > 0 && ` • ${task._count.subtasks} subtarefas`}
                           </p>
                         </div>
-                        <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${ts?.color}20`, color: ts?.color }}>{ts?.label}</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${ts?.color}20`, color: ts?.color ?? undefined }}>{ts?.label}</span>
                       </div>
                     )
                   })}
