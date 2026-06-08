@@ -1,0 +1,1007 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// USUÁRIOS E EQUIPES
+// ============================================================
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  MEMBER
+  VIEWER
+}
+
+model User {
+  id         String   @id @default(cuid())
+  name       String
+  email      String   @unique
+  password   String?
+  avatar     String?
+  role       UserRole @default(MEMBER)
+  department String?
+  phone      String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  accounts           Account[]
+  sessions           Session[]
+  teamMemberships    TeamMember[]
+  assignedLeads      Lead[]             @relation("LeadResponsible")
+  createdLeads       Lead[]             @relation("LeadCreator")
+  dealResponsible    Deal[]             @relation("DealResponsible")
+  projectMemberships ProjectMember[]
+  createdProjects    Project[]          @relation("ProjectCreator")
+  taskAssignments    TaskAssignee[]
+  createdTasks       Task[]             @relation("TaskCreator")
+  timeEntries        TimeEntry[]
+  approvalRequests   Approval[]         @relation("ApprovalCreator")
+  approvalAssignments Approval[]        @relation("ApprovalAssignee")
+  notifications      Notification[]
+  aiConversations    AIConversation[]
+  auditLogs          AuditLog[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Team {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  color       String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  members     TeamMember[]
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  userId    String
+  role      String   @default("member")
+  createdAt DateTime @default(now())
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+}
+
+// ============================================================
+// SOLUÇÕES PIXELSAV
+// ============================================================
+
+model Solution {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  category    String?
+  color       String?
+  icon        String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  leads     Lead[]
+  deals     Deal[]
+  projects  Project[]
+  proposals Proposal[]
+  templates ProjectTemplate[]
+}
+
+// ============================================================
+// CRM
+// ============================================================
+
+enum LeadStatus {
+  NEW
+  WAITING_RESPONSE
+  QUALIFIED
+  SEND_TO_TECHNICAL
+  TECHNICAL_ANALYSIS
+  PRICING
+  PROPOSAL_DRAFTING
+  PROPOSAL_SENT
+  NEGOTIATION
+  WON
+  LOST
+  NO_FIT
+}
+
+enum LeadType {
+  TEMPORARY_EVENT
+  FIXED_INSTALLATION
+}
+
+enum LeadOrigin {
+  INSTAGRAM
+  LINKEDIN
+  REFERRAL
+  GOOGLE
+  COLD_OUTREACH
+  INBOUND_SITE
+  WHATSAPP
+  EXHIBITION
+  PARTNERSHIP
+  OTHER
+}
+
+model Lead {
+  id             String      @id @default(cuid())
+  contactName    String
+  company        String?
+  whatsapp       String?
+  email          String?
+  city           String?
+  state          String?
+  origin         LeadOrigin?
+  solutionId     String?
+  type           LeadType?
+  eventDate      DateTime?
+  eventLocation  String?
+  rentalPeriod   String?
+  budget         Decimal?    @db.Decimal(15, 2)
+  status         LeadStatus  @default(NEW)
+  notes          String?     @db.Text
+  responsibleId  String?
+  nextAction     String?
+  nextActionDate DateTime?
+  qualifiedAt    DateTime?
+  clientId       String?
+  createdById    String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  solution    Solution?        @relation(fields: [solutionId], references: [id])
+  responsible User?            @relation("LeadResponsible", fields: [responsibleId], references: [id])
+  createdBy   User?            @relation("LeadCreator", fields: [createdById], references: [id])
+  client      Client?          @relation(fields: [clientId], references: [id])
+  deals       Deal[]
+  files       FileAttachment[] @relation("LeadFiles")
+}
+
+model Client {
+  id        String   @id @default(cuid())
+  name      String
+  company   String?
+  cnpj      String?
+  email     String?
+  phone     String?
+  whatsapp  String?
+  address   String?
+  city      String?
+  state     String?
+  country   String?  @default("Brasil")
+  website   String?
+  notes     String?  @db.Text
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contacts  Contact[]
+  leads     Lead[]
+  deals     Deal[]
+  projects  Project[]
+  proposals Proposal[]
+  contracts Contract[]
+  files     FileAttachment[] @relation("ClientFiles")
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  clientId  String
+  name      String
+  role      String?
+  email     String?
+  phone     String?
+  whatsapp  String?
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+enum DealStatus {
+  OPEN
+  WON
+  LOST
+}
+
+model Deal {
+  id                String     @id @default(cuid())
+  title             String
+  clientId          String?
+  leadId            String?
+  solutionId        String?
+  value             Decimal?   @db.Decimal(15, 2)
+  status            DealStatus @default(OPEN)
+  stage             String     @default("NEW")
+  probability       Int?
+  expectedCloseDate DateTime?
+  closedAt          DateTime?
+  responsibleId     String?
+  notes             String?    @db.Text
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  client      Client?          @relation(fields: [clientId], references: [id])
+  lead        Lead?            @relation(fields: [leadId], references: [id])
+  solution    Solution?        @relation(fields: [solutionId], references: [id])
+  responsible User?            @relation("DealResponsible", fields: [responsibleId], references: [id])
+  proposal    Proposal?
+  project     Project?
+  files       FileAttachment[] @relation("DealFiles")
+}
+
+// ============================================================
+// PROPOSTAS E CONTRATOS
+// ============================================================
+
+enum ProposalStatus {
+  DRAFT
+  SENT
+  VIEWED
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+model Proposal {
+  id            String         @id @default(cuid())
+  number        String         @unique
+  title         String
+  clientId      String?
+  dealId        String?        @unique
+  solutionId    String?
+  scope         String?        @db.Text
+  eventDate     DateTime?
+  eventLocation String?
+  validUntil    DateTime?
+  totalValue    Decimal?       @db.Decimal(15, 2)
+  status        ProposalStatus @default(DRAFT)
+  notes         String?        @db.Text
+  terms         String?        @db.Text
+  sentAt        DateTime?
+  approvedAt    DateTime?
+  rejectedAt    DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  client   Client?          @relation(fields: [clientId], references: [id])
+  deal     Deal?            @relation(fields: [dealId], references: [id])
+  solution Solution?        @relation(fields: [solutionId], references: [id])
+  items    ProposalItem[]
+  contract Contract?
+  files    FileAttachment[] @relation("ProposalFiles")
+}
+
+model ProposalItem {
+  id          String   @id @default(cuid())
+  proposalId  String
+  description String
+  quantity    Int      @default(1)
+  unitValue   Decimal  @db.Decimal(15, 2)
+  totalValue  Decimal  @db.Decimal(15, 2)
+  notes       String?
+  sortOrder   Int      @default(0)
+  proposal    Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+}
+
+enum ContractStatus {
+  DRAFT
+  SENT
+  SIGNED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model Contract {
+  id         String         @id @default(cuid())
+  number     String         @unique
+  title      String
+  clientId   String?
+  proposalId String?        @unique
+  value      Decimal?       @db.Decimal(15, 2)
+  startDate  DateTime?
+  endDate    DateTime?
+  signedAt   DateTime?
+  status     ContractStatus @default(DRAFT)
+  content    String?        @db.Text
+  notes      String?        @db.Text
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  client   Client?          @relation(fields: [clientId], references: [id])
+  proposal Proposal?        @relation(fields: [proposalId], references: [id])
+  project  Project?
+  files    FileAttachment[] @relation("ContractFiles")
+}
+
+// ============================================================
+// PROJETOS
+// ============================================================
+
+enum ProjectStatus {
+  DRAFT
+  PLANNING
+  IN_PROGRESS
+  ON_HOLD
+  AT_RISK
+  COMPLETED
+  CANCELLED
+}
+
+enum ProjectHealth {
+  GOOD
+  AT_RISK
+  CRITICAL
+}
+
+model Project {
+  id                 String        @id @default(cuid())
+  name               String
+  code               String?       @unique
+  clientId           String?
+  dealId             String?       @unique
+  contractId         String?       @unique
+  solutionId         String?
+  scope              String?       @db.Text
+  eventLocation      String?
+  eventDate          DateTime?
+  setupStartDate     DateTime?
+  setupEndDate       DateTime?
+  operationStartDate DateTime?
+  operationEndDate   DateTime?
+  teardownStartDate  DateTime?
+  teardownEndDate    DateTime?
+  status             ProjectStatus @default(PLANNING)
+  health             ProjectHealth @default(GOOD)
+  approvedBudget     Decimal?      @db.Decimal(15, 2)
+  estimatedCosts     Decimal?      @db.Decimal(15, 2)
+  actualCosts        Decimal?      @db.Decimal(15, 2)
+  estimatedMargin    Decimal?      @db.Decimal(15, 2)
+  actualMargin       Decimal?      @db.Decimal(15, 2)
+  commercialLeadId   String?
+  technicalLeadId    String?
+  productionLeadId   String?
+  createdById        String?
+  completedAt        DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  client         Client?            @relation(fields: [clientId], references: [id])
+  deal           Deal?              @relation(fields: [dealId], references: [id])
+  contract       Contract?          @relation(fields: [contractId], references: [id])
+  solution       Solution?          @relation(fields: [solutionId], references: [id])
+  createdBy      User?              @relation("ProjectCreator", fields: [createdById], references: [id])
+  members        ProjectMember[]
+  tasks          Task[]
+  costs          ProjectCost[]
+  timeEntries    TimeEntry[]
+  approvals      Approval[]
+  files          FileAttachment[]   @relation("ProjectFiles")
+  portfolioItems PortfolioProject[]
+  events         Event[]
+  goalMetrics    GoalMetric[]
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  role      String   @default("member")
+  joinedAt  DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+}
+
+model ProjectCost {
+  id          String    @id @default(cuid())
+  projectId   String
+  category    String
+  description String
+  estimated   Decimal?  @db.Decimal(15, 2)
+  actual      Decimal?  @db.Decimal(15, 2)
+  supplier    String?
+  date        DateTime?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// TEMPLATES DE PROJETO
+// ============================================================
+
+model ProjectTemplate {
+  id          String                @id @default(cuid())
+  name        String
+  solutionId  String?
+  description String?
+  isDefault   Boolean               @default(false)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  solution    Solution?             @relation(fields: [solutionId], references: [id])
+  tasks       ProjectTemplateTask[]
+}
+
+model ProjectTemplateTask {
+  id            String          @id @default(cuid())
+  templateId    String
+  name          String
+  description   String?
+  section       String?
+  daysFromStart Int?
+  durationDays  Int?
+  sortOrder     Int             @default(0)
+  isRequired    Boolean         @default(true)
+  template      ProjectTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// TAREFAS
+// ============================================================
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  DONE
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Task {
+  id             String       @id @default(cuid())
+  projectId      String?
+  parentId       String?
+  title          String
+  description    String?      @db.Text
+  status         TaskStatus   @default(TODO)
+  priority       TaskPriority @default(MEDIUM)
+  section        String?
+  dueDate        DateTime?
+  startDate      DateTime?
+  completedAt    DateTime?
+  estimatedHours Decimal?     @db.Decimal(8, 2)
+  actualHours    Decimal?     @db.Decimal(8, 2)
+  tags           String[]
+  createdById    String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  project      Project?         @relation(fields: [projectId], references: [id])
+  parent       Task?            @relation("TaskSubtasks", fields: [parentId], references: [id])
+  subtasks     Task[]           @relation("TaskSubtasks")
+  assignees    TaskAssignee[]
+  timeEntries  TimeEntry[]
+  approvals    Approval[]
+  files        FileAttachment[] @relation("TaskFiles")
+  createdBy    User?            @relation("TaskCreator", fields: [createdById], references: [id])
+  dependencies TaskDependency[] @relation("TaskDeps")
+  dependents   TaskDependency[] @relation("TaskDependents")
+  events       Event[]
+  goalMetrics  GoalMetric[]
+}
+
+model TaskAssignee {
+  id         String   @id @default(cuid())
+  taskId     String
+  userId     String
+  assignedAt DateTime @default(now())
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, userId])
+}
+
+model TaskDependency {
+  id          String @id @default(cuid())
+  taskId      String
+  dependsOnId String
+  type        String @default("finish_to_start")
+  task        Task   @relation("TaskDeps", fields: [taskId], references: [id], onDelete: Cascade)
+  dependsOn   Task   @relation("TaskDependents", fields: [dependsOnId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, dependsOnId])
+}
+
+// ============================================================
+// TIME TRACKING
+// ============================================================
+
+model TimeEntry {
+  id          String    @id @default(cuid())
+  userId      String
+  projectId   String?
+  taskId      String?
+  description String?
+  startTime   DateTime
+  endTime     DateTime?
+  hours       Decimal?  @db.Decimal(8, 2)
+  billable    Boolean   @default(false)
+  hourlyRate  Decimal?  @db.Decimal(10, 2)
+  totalCost   Decimal?  @db.Decimal(15, 2)
+  date        DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id])
+  project     Project?  @relation(fields: [projectId], references: [id])
+  task        Task?     @relation(fields: [taskId], references: [id])
+}
+
+// ============================================================
+// APROVAÇÕES
+// ============================================================
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum ApprovalType {
+  PROPOSAL
+  DOCUMENT
+  CONTENT
+  BUDGET
+  TASK
+  PROJECT
+  OTHER
+}
+
+model Approval {
+  id            String         @id @default(cuid())
+  title         String
+  type          ApprovalType   @default(OTHER)
+  status        ApprovalStatus @default(PENDING)
+  projectId     String?
+  taskId        String?
+  requestedById String?
+  assigneeId    String?
+  dueDate       DateTime?
+  approvedAt    DateTime?
+  rejectedAt    DateTime?
+  notes         String?        @db.Text
+  feedback      String?        @db.Text
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  project     Project?         @relation(fields: [projectId], references: [id])
+  task        Task?            @relation(fields: [taskId], references: [id])
+  requestedBy User?            @relation("ApprovalCreator", fields: [requestedById], references: [id])
+  assignee    User?            @relation("ApprovalAssignee", fields: [assigneeId], references: [id])
+  files       FileAttachment[] @relation("ApprovalFiles")
+}
+
+// ============================================================
+// ARQUIVOS
+// ============================================================
+
+model File {
+  id           String   @id @default(cuid())
+  name         String
+  originalName String
+  mimeType     String
+  size         Int
+  url          String
+  storageKey   String
+  uploadedById String?
+  createdAt    DateTime @default(now())
+
+  attachments FileAttachment[]
+}
+
+model FileAttachment {
+  id         String   @id @default(cuid())
+  fileId     String
+  entityType String
+  entityId   String
+  createdAt  DateTime @default(now())
+
+  file       File      @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  clientId   String?
+  leadId     String?
+  dealId     String?
+  proposalId String?
+  contractId String?
+  projectId  String?
+  taskId     String?
+  approvalId String?
+
+  client   Client?   @relation("ClientFiles", fields: [clientId], references: [id])
+  lead     Lead?     @relation("LeadFiles", fields: [leadId], references: [id])
+  deal     Deal?     @relation("DealFiles", fields: [dealId], references: [id])
+  proposal Proposal? @relation("ProposalFiles", fields: [proposalId], references: [id])
+  contract Contract? @relation("ContractFiles", fields: [contractId], references: [id])
+  project  Project?  @relation("ProjectFiles", fields: [projectId], references: [id])
+  task     Task?     @relation("TaskFiles", fields: [taskId], references: [id])
+  approval Approval? @relation("ApprovalFiles", fields: [approvalId], references: [id])
+}
+
+// ============================================================
+// AGENDA
+// ============================================================
+
+enum EventType {
+  EVENT
+  SETUP
+  OPERATION
+  TEARDOWN
+  MEETING
+  DEADLINE
+  FOLLOW_UP
+  CONTENT_DELIVERY
+  CONTRACT_EXPIRY
+  PROJECT_MILESTONE
+  OTHER
+}
+
+model Event {
+  id          String    @id @default(cuid())
+  title       String
+  type        EventType @default(OTHER)
+  description String?
+  projectId   String?
+  taskId      String?
+  startDate   DateTime
+  endDate     DateTime?
+  allDay      Boolean   @default(false)
+  location    String?
+  color       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  project   Project?        @relation(fields: [projectId], references: [id])
+  task      Task?           @relation(fields: [taskId], references: [id])
+  attendees EventAttendee[]
+}
+
+model EventAttendee {
+  id        String   @id @default(cuid())
+  eventId   String
+  userId    String
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// METAS
+// ============================================================
+
+enum GoalStatus {
+  DRAFT
+  ACTIVE
+  ACHIEVED
+  MISSED
+  CANCELLED
+}
+
+enum GoalPeriod {
+  MONTHLY
+  QUARTERLY
+  SEMIANNUAL
+  ANNUAL
+  CUSTOM
+}
+
+model Goal {
+  id           String     @id @default(cuid())
+  title        String
+  description  String?    @db.Text
+  status       GoalStatus @default(ACTIVE)
+  period       GoalPeriod @default(QUARTERLY)
+  startDate    DateTime?
+  endDate      DateTime?
+  targetValue  Decimal?   @db.Decimal(15, 2)
+  currentValue Decimal?   @default(0) @db.Decimal(15, 2)
+  unit         String?
+  ownerId      String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  metrics GoalMetric[]
+}
+
+model GoalMetric {
+  id        String   @id @default(cuid())
+  goalId    String
+  projectId String?
+  taskId    String?
+  type      String
+  value     Decimal  @db.Decimal(15, 2)
+  date      DateTime @default(now())
+  notes     String?
+  goal      Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  project   Project? @relation(fields: [projectId], references: [id])
+  task      Task?    @relation(fields: [taskId], references: [id])
+}
+
+// ============================================================
+// PORTFÓLIOS
+// ============================================================
+
+model Portfolio {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  color       String?
+  ownerId     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  projects PortfolioProject[]
+}
+
+model PortfolioProject {
+  id          String    @id @default(cuid())
+  portfolioId String
+  projectId   String
+  addedAt     DateTime  @default(now())
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([portfolioId, projectId])
+}
+
+// ============================================================
+// IA
+// ============================================================
+
+model AIConversation {
+  id        String      @id @default(cuid())
+  userId    String
+  title     String?
+  context   Json?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  user      User        @relation(fields: [userId], references: [id])
+  messages  AIMessage[]
+}
+
+model AIMessage {
+  id             String         @id @default(cuid())
+  conversationId String
+  role           String
+  content        String         @db.Text
+  metadata       Json?
+  createdAt      DateTime       @default(now())
+  conversation   AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// AUTOMAÇÕES
+// ============================================================
+
+enum AutomationTriggerType {
+  LEAD_CREATED
+  LEAD_STATUS_CHANGED
+  DEAL_WON
+  DEAL_LOST
+  PROJECT_CREATED
+  TASK_COMPLETED
+  TASK_OVERDUE
+  APPROVAL_APPROVED
+  APPROVAL_REJECTED
+  PROPOSAL_APPROVED
+  CONTRACT_SIGNED
+  BUDGET_EXCEEDED
+  SCHEDULE
+  MANUAL
+}
+
+enum AutomationActionType {
+  SEND_NOTIFICATION
+  SEND_EMAIL
+  CREATE_TASK
+  UPDATE_STATUS
+  ASSIGN_USER
+  CREATE_PROJECT
+  SEND_WEBHOOK
+}
+
+model Automation {
+  id          String                @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean               @default(true)
+  trigger     AutomationTriggerType
+  conditions  Json?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  actions     AutomationAction[]
+  logs        AutomationLog[]
+}
+
+model AutomationAction {
+  id           String               @id @default(cuid())
+  automationId String
+  type         AutomationActionType
+  config       Json
+  sortOrder    Int                  @default(0)
+  automation   Automation           @relation(fields: [automationId], references: [id], onDelete: Cascade)
+}
+
+model AutomationLog {
+  id           String     @id @default(cuid())
+  automationId String
+  triggeredAt  DateTime   @default(now())
+  status       String
+  entityType   String?
+  entityId     String?
+  output       Json?
+  error        String?
+  automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// NOTIFICAÇÕES
+// ============================================================
+
+model Notification {
+  id         String    @id @default(cuid())
+  userId     String
+  title      String
+  body       String?
+  type       String
+  entityType String?
+  entityId   String?
+  isRead     Boolean   @default(false)
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// IMPORTAÇÃO (ASANA)
+// ============================================================
+
+enum ImportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  ROLLED_BACK
+}
+
+model Import {
+  id             String        @id @default(cuid())
+  sourcePlatform String        @default("asana")
+  status         ImportStatus  @default(PENDING)
+  createdById    String?
+  totalItems     Int           @default(0)
+  importedItems  Int           @default(0)
+  skippedItems   Int           @default(0)
+  errorItems     Int           @default(0)
+  startedAt      DateTime?
+  completedAt    DateTime?
+  rolledBackAt   DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  files          ImportFile[]
+  mappings       ImportMapping[]
+  logs           ImportLog[]
+  externalIds    ExternalId[]
+}
+
+model ImportFile {
+  id         String   @id @default(cuid())
+  importId   String
+  fileName   String
+  fileType   String
+  size       Int
+  content    String?  @db.Text
+  parsedData Json?
+  createdAt  DateTime @default(now())
+  import     Import   @relation(fields: [importId], references: [id], onDelete: Cascade)
+}
+
+model ImportMapping {
+  id             String   @id @default(cuid())
+  importId       String
+  sourceType     String
+  sourceKey      String
+  targetType     String
+  targetKey      String?
+  transformation Json?
+  createdAt      DateTime @default(now())
+  import         Import   @relation(fields: [importId], references: [id], onDelete: Cascade)
+}
+
+model ImportLog {
+  id         String   @id @default(cuid())
+  importId   String
+  level      String
+  message    String
+  entityType String?
+  entityId   String?
+  externalId String?
+  createdAt  DateTime @default(now())
+  import     Import   @relation(fields: [importId], references: [id], onDelete: Cascade)
+}
+
+model ExternalId {
+  id               String   @id @default(cuid())
+  importId         String?
+  sourcePlatform   String
+  externalId       String
+  externalGid      String?
+  mappedEntityType String
+  mappedEntityId   String
+  originalDataJson Json?
+  importBatchId    String?
+  createdAt        DateTime @default(now())
+  import           Import?  @relation(fields: [importId], references: [id])
+
+  @@unique([sourcePlatform, externalId])
+}
+
+// ============================================================
+// AUDIT LOG
+// ============================================================
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  entityType String
+  entityId   String
+  changes    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id])
+}
