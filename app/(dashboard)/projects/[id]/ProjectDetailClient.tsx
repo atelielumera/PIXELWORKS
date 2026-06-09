@@ -124,7 +124,7 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
     if (res.ok) {
       const created = await res.json()
       setTasks(prev => [...prev, { ...created, assignees: [], _count: { subtasks: 0 } }])
-      setNewTask({ title: '', section: 'Geral', priority: 'MEDIUM' })
+      setNewTask({ title: '', section: 'Geral', priority: 'MEDIUM', prestador: '', fornecedor: '', eixoTematico: '' })
       setShowAddTask(false)
     }
   }
