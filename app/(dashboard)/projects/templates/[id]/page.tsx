@@ -86,6 +86,7 @@ export default function TemplateDetailPage({ params }: { params: Promise<{ id: s
               <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full font-medium">Padrão</span>
             )}
           </div>
+
           <div className="flex gap-3 mt-5">
             <Link
               href={`/projects/new?templateId=${tpl.id}${tpl.solution ? `&solutionId=${tpl.solution.id}` : ''}`}
