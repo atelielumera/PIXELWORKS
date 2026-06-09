@@ -42,6 +42,7 @@ export default async function CostsPage() {
             <p className="text-xs text-gray-500 mt-0.5">{variance >= 0 ? 'abaixo do estimado' : 'acima do estimado'}</p>
           </div>
         </div>
+
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <table className="w-full text-sm">
             <thead>

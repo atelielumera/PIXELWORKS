@@ -51,6 +51,7 @@ export default async function RevenuesPage() {
             </div>
           ))}
         </div>
+
         <div className="bg-white rounded-xl border border-gray-200">
           <div className="px-5 py-4 border-b border-gray-100">
             <h3 className="font-semibold text-gray-900">Deals Fechados (Ganhos)</h3>
@@ -93,6 +94,7 @@ export default async function RevenuesPage() {
             </table>
           </div>
         </div>
+
         <div className="bg-white rounded-xl border border-gray-200">
           <div className="px-5 py-4 border-b border-gray-100">
             <h3 className="font-semibold text-gray-900">Contratos Ativos</h3>
