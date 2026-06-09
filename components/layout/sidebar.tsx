@@ -18,6 +18,12 @@ type ProjectItem = {
   solution: { color: string | null } | null
 }
 
+type TeamItem = {
+  id: string
+  name: string
+  color: string | null
+}
+
 const staticNav = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   {
@@ -60,11 +66,17 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   const [expanded, setExpanded] = useState<string[]>(['CRM', 'Projetos', 'Financeiro'])
   const [projects, setProjects] = useState<ProjectItem[]>([])
   const [projectsExpanded, setProjectsExpanded] = useState(true)
+  const [teams, setTeams] = useState<TeamItem[]>([])
+  const [teamsExpanded, setTeamsExpanded] = useState(true)
 
   useEffect(() => {
     fetch('/api/projects')
       .then(r => r.json())
       .then(d => setProjects(d.data ?? []))
+      .catch(() => {})
+    fetch('/api/teams')
+      .then(r => r.json())
+      .then(d => setTeams(d.data ?? []))
       .catch(() => {})
   }, [])
 
@@ -194,10 +206,53 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           pathname === '/tasks' ? 'bg-blue-600 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800'
         )}><CheckSquare size={15} />Tarefas</Link>
 
-        <Link href="/teams" onClick={onClose} className={cn(
-          'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
-          pathname === '/teams' ? 'bg-blue-600 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800'
-        )}><Building2 size={15} />Equipes</Link>
+        {/* EQUIPES — seção dinâmica igual a Projetos */}
+        <div>
+          <button
+            onClick={() => setTeamsExpanded(v => !v)}
+            className={cn(
+              'flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm transition-colors',
+              pathname.startsWith('/teams') ? 'text-blue-400 bg-blue-500/10' : 'text-gray-400 hover:text-white hover:bg-gray-800'
+            )}
+          >
+            <span className="flex items-center gap-2.5">
+              <Building2 size={15} />
+              <span className="font-medium">Equipes</span>
+            </span>
+            {teamsExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+          </button>
+
+          {teamsExpanded && (
+            <div className="ml-5 mt-0.5 pl-3 border-l border-gray-800 space-y-0.5">
+              <Link href="/teams" onClick={onClose} className={cn(
+                'block px-2 py-1.5 rounded-lg text-xs transition-colors',
+                pathname === '/teams' ? 'bg-blue-600 text-white font-medium' : 'text-gray-500 hover:text-white hover:bg-gray-800'
+              )}>Todas as Equipes</Link>
+
+              {teams.length > 0 && <div className="my-1 border-t border-gray-800/60" />}
+
+              {teams.map(t => (
+                <Link
+                  key={t.id}
+                  href={`/teams/${t.id}`}
+                  onClick={onClose}
+                  className={cn(
+                    'flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition-colors',
+                    pathname === `/teams/${t.id}` ? 'bg-blue-600 text-white font-medium' : 'text-gray-500 hover:text-white hover:bg-gray-800'
+                  )}
+                >
+                  <span className="w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: t.color ?? '#6B7280' }} />
+                  <span className="truncate leading-tight">{t.name}</span>
+                </Link>
+              ))}
+
+              <Link href="/teams/new" onClick={onClose} className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs text-gray-600 hover:text-blue-400 hover:bg-gray-800 transition-colors">
+                <Plus size={11} />
+                <span>Nova equipe</span>
+              </Link>
+            </div>
+          )}
+        </div>
 
         <Link href="/agenda" onClick={onClose} className={cn(
           'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
