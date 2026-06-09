@@ -2,11 +2,11 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { Header } from '@/components/layout/header'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 import Link from 'next/link'
 import {
   Users, Briefcase, CheckSquare, DollarSign, Clock,
-  TrendingUp, AlertTriangle, ThumbsUp, Calendar, Zap
+  TrendingUp, AlertTriangle, ThumbsUp, Calendar, Zap, Circle, AlertCircle
 } from 'lucide-react'
 
 async function getDashboardData() {
@@ -61,6 +61,67 @@ async function getUpcomingEvents() {
   })
 }
 
+async function getMyTasks(userId: string) {
+  const tasks = await prisma.task.findMany({
+    where: {
+      assignees: { some: { userId } },
+      status: { notIn: ['DONE', 'CANCELLED'] },
+    },
+    include: {
+      project: { select: { id: true, name: true, solution: { select: { color: true } } } },
+      assignees: { include: { user: { select: { id: true, name: true } } } },
+    },
+    orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
+    take: 50,
+  })
+
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1)
+
+  const overdue = tasks.filter(t => t.dueDate && new Date(t.dueDate) < today)
+  const dueToday = tasks.filter(t => t.dueDate && new Date(t.dueDate) >= today && new Date(t.dueDate) < tomorrow)
+  const upcoming = tasks.filter(t => t.dueDate && new Date(t.dueDate) >= tomorrow)
+  const noDate = tasks.filter(t => !t.dueDate)
+
+  return { overdue, dueToday, upcoming, noDate, total: tasks.length }
+}
+
+type TaskWithProject = {
+  id: string; title: string; status: string; priority: string
+  dueDate: Date | null; section: string | null
+  project: { id: string; name: string; solution: { color: string | null } | null } | null
+}
+
+function TaskRow({ task }: { task: TaskWithProject }) {
+  const st = TASK_STATUS_STYLE[task.status] ?? TASK_STATUS_STYLE.TODO
+  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date(new Date().setHours(0, 0, 0, 0))
+  return (
+    <Link
+      href={`/projects/${task.project?.id}?task=${task.id}`}
+      className="flex items-center gap-3 px-5 py-3 border-b border-gray-50 last:border-0 hover:bg-blue-50/20 transition-colors group"
+    >
+      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: st.color }} />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-900 truncate group-hover:text-blue-600">{task.title}</p>
+        <div className="flex items-center gap-2 mt-0.5">
+          {task.project && (
+            <span className="text-xs text-gray-500 truncate">{task.project.name}</span>
+          )}
+          {task.section && <span className="text-xs text-gray-400">· {task.section}</span>}
+        </div>
+      </div>
+      {task.dueDate && (
+        <span className="text-xs shrink-0 font-medium" style={{ color: isOverdue ? '#ef4444' : '#9ca3af' }}>
+          {formatDate(task.dueDate.toISOString())}
+        </span>
+      )}
+      {task.project?.solution?.color && (
+        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: task.project.solution.color }} />
+      )}
+    </Link>
+  )
+}
+
 function StatCard({ title, value, sub, icon: Icon, color, href }: {
   title: string; value: string | number; sub?: string;
   icon: React.ElementType; color: string; href?: string
@@ -82,12 +143,26 @@ function StatCard({ title, value, sub, icon: Icon, color, href }: {
   )
 }
 
+const TASK_STATUS_STYLE: Record<string, { label: string; color: string }> = {
+  TODO:        { label: 'A Fazer',      color: '#6b7280' },
+  IN_PROGRESS: { label: 'Em Andamento', color: '#3b82f6' },
+  IN_REVIEW:   { label: 'Em Revisão',   color: '#f59e0b' },
+  DONE:        { label: 'Concluído',    color: '#22c55e' },
+  CANCELLED:   { label: 'Cancelado',    color: '#ef4444' },
+}
+
 export default async function DashboardPage() {
-  const [stats, leads, events] = await Promise.all([
+  const session = await getServerSession(authOptions)
+  const userId = (session?.user as any)?.id as string | undefined
+
+  const [stats, leads, events, myTasks] = await Promise.all([
     getDashboardData(),
     getRecentLeads(),
     getUpcomingEvents(),
+    userId ? getMyTasks(userId) : Promise.resolve({ overdue: [], dueToday: [], upcoming: [], noDate: [], total: 0 }),
   ])
+
+  const userName = (session?.user as any)?.name as string | undefined
 
   const PIPELINE_LABELS: Record<string, string> = {
     NEW: 'Novo', WAITING_RESPONSE: 'Aguardando', QUALIFIED: 'Qualificado',
@@ -97,7 +172,10 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <Header title="Dashboard" subtitle="Visão geral do PixelSAV WorkOS" />
+      <Header
+        title={userName ? `Olá, ${userName.split(' ')[0]}!` : 'Dashboard'}
+        subtitle="Visão geral do PixelSAV WorkOS"
+      />
       <div className="p-6 space-y-6">
 
         {/* Stats Grid */}
@@ -115,6 +193,76 @@ export default async function DashboardPage() {
           <StatCard title="Receita Fechada" value={formatCurrency(stats.revenueClosed)} icon={DollarSign} color="bg-emerald-500" />
           <StatCard title="Deals Perdidos" value={stats.dealsLost} icon={AlertTriangle} color="bg-gray-500" />
         </div>
+
+        {/* ─── MINHAS TAREFAS ─── */}
+        {userId && (
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <CheckSquare size={16} className="text-blue-500" />
+                <h2 className="font-semibold text-gray-900">Minhas Tarefas</h2>
+                {myTasks.total > 0 && (
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">{myTasks.total}</span>
+                )}
+              </div>
+            </div>
+
+            {myTasks.total === 0 ? (
+              <p className="text-sm text-gray-500 px-5 py-8 text-center">Nenhuma tarefa atribuída a você.</p>
+            ) : (
+              <div>
+                {/* Atrasadas */}
+                {myTasks.overdue.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 px-5 py-2 bg-red-50/40">
+                      <AlertCircle size={12} className="text-red-500" />
+                      <span className="text-xs font-bold text-red-600 uppercase tracking-wide">Atrasadas ({myTasks.overdue.length})</span>
+                    </div>
+                    {myTasks.overdue.map(task => (
+                      <TaskRow key={task.id} task={task} />
+                    ))}
+                  </div>
+                )}
+
+                {/* Hoje */}
+                {myTasks.dueToday.length > 0 && (
+                  <div>
+                    <div className="px-5 py-2 bg-yellow-50/30">
+                      <span className="text-xs font-bold text-yellow-700 uppercase tracking-wide">Hoje ({myTasks.dueToday.length})</span>
+                    </div>
+                    {myTasks.dueToday.map(task => (
+                      <TaskRow key={task.id} task={task} />
+                    ))}
+                  </div>
+                )}
+
+                {/* Próximas */}
+                {myTasks.upcoming.length > 0 && (
+                  <div>
+                    <div className="px-5 py-2 bg-gray-50/30">
+                      <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Próximas ({myTasks.upcoming.length})</span>
+                    </div>
+                    {myTasks.upcoming.map(task => (
+                      <TaskRow key={task.id} task={task} />
+                    ))}
+                  </div>
+                )}
+
+                {/* Sem prazo */}
+                {myTasks.noDate.length > 0 && (
+                  <div>
+                    <div className="px-5 py-2 bg-gray-50/20">
+                      <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Sem prazo ({myTasks.noDate.length})</span>
+                    </div>
+                    {myTasks.noDate.map(task => (
+                      <TaskRow key={task.id} task={task} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Recent Leads */}

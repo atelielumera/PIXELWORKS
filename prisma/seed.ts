@@ -158,15 +158,31 @@ async function main() {
     { name: 'Caron',          email: 'caron@pixelsav.com.br',         role: 'ADMIN' },
     { name: 'Fernando',       email: 'atendimento@pixelsav.com.br',   role: 'ADMIN' },
   ]
+  const createdUsers: { id: string; name: string }[] = []
   for (const u of pixelsavUsers) {
-    await prisma.user.upsert({
+    const created = await prisma.user.upsert({
       where: { email: u.email },
       update: { name: u.name, role: u.role as any },
       create: { name: u.name, email: u.email, password: pixelsavHash, role: u.role as any },
     })
+    createdUsers.push({ id: created.id, name: created.name })
     console.log(`  ✓ Usuário: ${u.name} (${u.email})`)
   }
   console.log('✓ Usuários PixelSAV criados')
+
+  // Equipe PixelSAV
+  let team = await prisma.team.findFirst({ where: { name: 'PixelSAV' } })
+  if (!team) {
+    team = await prisma.team.create({ data: { name: 'PixelSAV', description: 'Equipe PixelSAV', color: '#3B82F6' } })
+  }
+  for (const u of createdUsers) {
+    await prisma.teamMember.upsert({
+      where: { teamId_userId: { teamId: team.id, userId: u.id } },
+      update: {},
+      create: { teamId: team.id, userId: u.id, role: 'admin' },
+    })
+  }
+  console.log('✓ Equipe PixelSAV criada com 5 membros')
 
   const allSolutions = await prisma.solution.findMany()
   for (const sol of allSolutions) {

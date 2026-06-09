@@ -138,7 +138,7 @@ function ComboCell({ value, suggestions, onSave, placeholder, type = 'TEXT' }: {
   )
 }
 
-export function ProjectDetailClient({ project: initial, users }: { project: Project; users: User[] }) {
+export function ProjectDetailClient({ project: initial, users, highlightTaskId }: { project: Project; users: User[]; highlightTaskId?: string }) {
   const [project, setProject] = useState(initial)
   const [tasks, setTasks] = useState(initial.tasks)
   const [costs, setCosts] = useState(initial.costs)
@@ -148,6 +148,13 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
   const [newFieldName, setNewFieldName] = useState('')
   const [newFieldType, setNewFieldType] = useState<'TEXT' | 'CURRENCY'>('TEXT')
   const [activeTab, setActiveTab] = useState<Tab>('lista')
+  const highlightRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (highlightTaskId && highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [highlightTaskId])
 
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
   const [addingInSection, setAddingInSection] = useState<string | null>(null)
@@ -533,14 +540,17 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
                         const isDone = task.status === 'DONE'
                         return (
                           <div key={task.id}
+                            ref={highlightTaskId === task.id ? highlightRef : undefined}
                             className="grid group items-center px-4 py-2 transition-colors"
                             style={{
                               borderBottom: '1px solid #2c2e33',
                               gridTemplateColumns: `28px 1fr 110px 100px 110px 110px 110px${customFields.map(() => ' 120px').join('')} 90px`,
-                              backgroundColor: 'transparent',
+                              backgroundColor: highlightTaskId === task.id ? 'rgba(59,130,246,0.12)' : 'transparent',
+                              outline: highlightTaskId === task.id ? '1px solid rgba(59,130,246,0.4)' : 'none',
+                              borderRadius: highlightTaskId === task.id ? 4 : 0,
                             }}
-                            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)')}
-                            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                            onMouseEnter={e => { if (highlightTaskId !== task.id) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)' }}
+                            onMouseLeave={e => { if (highlightTaskId !== task.id) e.currentTarget.style.backgroundColor = 'transparent' }}
                           >
                             {/* Checkbox */}
                             <button onClick={() => toggleTask(task)}
