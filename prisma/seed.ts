@@ -154,9 +154,9 @@ async function main() {
   const pixelsavUsers = [
     { name: 'Flávio Dantas',  email: 'flaviodantas@pixelsav.com.br', role: 'ADMIN' },
     { name: 'Denise Dantas',  email: 'denisedantas@pixelsav.com.br', role: 'ADMIN' },
-    { name: 'Emily',          email: 'emily@pixelsav.com.br',         role: 'MEMBER' },
-    { name: 'Caron',          email: 'caron@pixelsav.com.br',         role: 'MEMBER' },
-    { name: 'Fernando',       email: 'atendimento@pixelsav.com.br',   role: 'MEMBER' },
+    { name: 'Emily',          email: 'emily@pixelsav.com.br',         role: 'ADMIN' },
+    { name: 'Caron',          email: 'caron@pixelsav.com.br',         role: 'ADMIN' },
+    { name: 'Fernando',       email: 'atendimento@pixelsav.com.br',   role: 'ADMIN' },
   ]
   for (const u of pixelsavUsers) {
     await prisma.user.upsert({
