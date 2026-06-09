@@ -10,7 +10,7 @@ import {
   ChevronRight, LogOut, Building2, Plus
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { signOut } from 'next-auth/react'
+import { signOut, useSession } from 'next-auth/react'
 
 type ProjectItem = {
   id: string
@@ -53,8 +53,10 @@ const staticNav = [
   { name: 'Importar Asana', href: '/import/asana', icon: Download },
 ]
 
-export function Sidebar() {
+export function Sidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname()
+  const { data: session } = useSession()
+  const user = session?.user as any
   const [expanded, setExpanded] = useState<string[]>(['CRM', 'Projetos', 'Financeiro'])
   const [projects, setProjects] = useState<ProjectItem[]>([])
   const [projectsExpanded, setProjectsExpanded] = useState(true)
@@ -89,6 +91,7 @@ export function Sidebar() {
         {/* Dashboard */}
         <Link
           href="/"
+          onClick={onClose}
           className={cn(
             'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
             pathname === '/' ? 'bg-blue-600 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800'
@@ -115,7 +118,7 @@ export function Sidebar() {
               {isOpen && (
                 <div className="ml-5 mt-0.5 space-y-0.5 pl-3 border-l border-gray-800">
                   {children.map(child => (
-                    <Link key={child.href} href={child.href} className={cn(
+                    <Link key={child.href} href={child.href} onClick={onClose} className={cn(
                       'block px-2 py-1.5 rounded-lg text-xs transition-colors',
                       pathname === child.href ? 'bg-blue-600 text-white font-medium' : 'text-gray-500 hover:text-white hover:bg-gray-800'
                     )}>{child.name}</Link>
@@ -145,11 +148,11 @@ export function Sidebar() {
           {projectsExpanded && (
             <div className="ml-5 mt-0.5 pl-3 border-l border-gray-800 space-y-0.5">
               {/* Links fixos */}
-              <Link href="/projects" className={cn(
+              <Link href="/projects" onClick={onClose} className={cn(
                 'block px-2 py-1.5 rounded-lg text-xs transition-colors',
                 pathname === '/projects' ? 'bg-blue-600 text-white font-medium' : 'text-gray-500 hover:text-white hover:bg-gray-800'
               )}>Todos os Projetos</Link>
-              <Link href="/projects/templates" className={cn(
+              <Link href="/projects/templates" onClick={onClose} className={cn(
                 'block px-2 py-1.5 rounded-lg text-xs transition-colors',
                 pathname.startsWith('/projects/templates') ? 'bg-blue-600 text-white font-medium' : 'text-gray-500 hover:text-white hover:bg-gray-800'
               )}>Templates</Link>
@@ -162,6 +165,7 @@ export function Sidebar() {
                 <Link
                   key={p.id}
                   href={`/projects/${p.id}`}
+                  onClick={onClose}
                   className={cn(
                     'flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition-colors group',
                     pathname === `/projects/${p.id}` ? 'bg-blue-600 text-white font-medium' : 'text-gray-500 hover:text-white hover:bg-gray-800'
@@ -176,7 +180,7 @@ export function Sidebar() {
               ))}
 
               {/* Novo projeto */}
-              <Link href="/projects/new" className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs text-gray-600 hover:text-blue-400 hover:bg-gray-800 transition-colors">
+              <Link href="/projects/new" onClick={onClose} className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs text-gray-600 hover:text-blue-400 hover:bg-gray-800 transition-colors">
                 <Plus size={11} />
                 <span>Novo projeto</span>
               </Link>
@@ -185,17 +189,17 @@ export function Sidebar() {
         </div>
 
         {/* Resto dos itens estáticos */}
-        <Link href="/tasks" className={cn(
+        <Link href="/tasks" onClick={onClose} className={cn(
           'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
           pathname === '/tasks' ? 'bg-blue-600 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800'
         )}><CheckSquare size={15} />Tarefas</Link>
 
-        <Link href="/teams" className={cn(
+        <Link href="/teams" onClick={onClose} className={cn(
           'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
           pathname === '/teams' ? 'bg-blue-600 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800'
         )}><Building2 size={15} />Equipes</Link>
 
-        <Link href="/agenda" className={cn(
+        <Link href="/agenda" onClick={onClose} className={cn(
           'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
           pathname === '/agenda' ? 'bg-blue-600 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800'
         )}><Calendar size={15} />Agenda</Link>
@@ -223,7 +227,7 @@ export function Sidebar() {
               {isOpen && (
                 <div className="ml-5 mt-0.5 space-y-0.5 pl-3 border-l border-gray-800">
                   {children.map(child => (
-                    <Link key={child.href} href={child.href} className={cn(
+                    <Link key={child.href} href={child.href} onClick={onClose} className={cn(
                       'block px-2 py-1.5 rounded-lg text-xs transition-colors',
                       pathname === child.href ? 'bg-blue-600 text-white font-medium' : 'text-gray-500 hover:text-white hover:bg-gray-800'
                     )}>{child.name}</Link>
@@ -234,42 +238,42 @@ export function Sidebar() {
           )
         })()}
 
-        <Link href="/approvals" className={cn(
+        <Link href="/approvals" onClick={onClose} className={cn(
           'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
           pathname === '/approvals' ? 'bg-blue-600 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800'
         )}><ThumbsUp size={15} />Aprovações</Link>
 
-        <Link href="/files" className={cn(
+        <Link href="/files" onClick={onClose} className={cn(
           'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
           pathname === '/files' ? 'bg-blue-600 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800'
         )}><Folder size={15} />Arquivos</Link>
 
-        <Link href="/portfolios" className={cn(
+        <Link href="/portfolios" onClick={onClose} className={cn(
           'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
           pathname === '/portfolios' ? 'bg-blue-600 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800'
         )}><FolderKanban size={15} />Portfólios</Link>
 
-        <Link href="/goals" className={cn(
+        <Link href="/goals" onClick={onClose} className={cn(
           'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
           pathname === '/goals' ? 'bg-blue-600 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800'
         )}><Target size={15} />Metas</Link>
 
-        <Link href="/ai" className={cn(
+        <Link href="/ai" onClick={onClose} className={cn(
           'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
           pathname === '/ai' ? 'bg-blue-600 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800'
         )}><Brain size={15} />IA PixelSAV</Link>
 
-        <Link href="/reports" className={cn(
+        <Link href="/reports" onClick={onClose} className={cn(
           'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
           pathname === '/reports' ? 'bg-blue-600 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800'
         )}><BarChart3 size={15} />Relatórios</Link>
 
-        <Link href="/automations" className={cn(
+        <Link href="/automations" onClick={onClose} className={cn(
           'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
           pathname === '/automations' ? 'bg-blue-600 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800'
         )}><Zap size={15} />Automações</Link>
 
-        <Link href="/import/asana" className={cn(
+        <Link href="/import/asana" onClick={onClose} className={cn(
           'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
           pathname === '/import/asana' ? 'bg-blue-600 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800'
         )}><Download size={15} />Importar Asana</Link>
@@ -277,10 +281,25 @@ export function Sidebar() {
 
       {/* Bottom links */}
       <div className="px-2 py-3 border-t border-gray-800 space-y-0.5">
-        <Link href="/admin" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors', pathname.startsWith('/admin') ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800')}>
+        {/* User avatar strip */}
+        <Link href="/settings" onClick={onClose} className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-gray-800 transition-colors mb-1">
+          {user?.avatar ? (
+            <img src={user.avatar} alt={user.name} className="w-7 h-7 rounded-full object-cover shrink-0" />
+          ) : (
+            <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+              {user?.name?.charAt(0) ?? 'U'}
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-white leading-tight truncate">{user?.name ?? 'Usuário'}</div>
+            <div className="text-xs text-gray-500 truncate">{user?.email ?? ''}</div>
+          </div>
+        </Link>
+
+        <Link href="/admin" onClick={onClose} className={cn('flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors', pathname.startsWith('/admin') ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800')}>
           <Shield size={15} /><span>Admin</span>
         </Link>
-        <Link href="/settings" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors', pathname === '/settings' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800')}>
+        <Link href="/settings" onClick={onClose} className={cn('flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors', pathname === '/settings' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800')}>
           <Settings size={15} /><span>Configurações</span>
         </Link>
         <button onClick={() => signOut({ callbackUrl: '/login' })} className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-red-400 hover:bg-red-500/10 w-full transition-colors">
