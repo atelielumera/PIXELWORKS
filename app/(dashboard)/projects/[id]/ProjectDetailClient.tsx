@@ -11,6 +11,7 @@ type TaskAssignee = { userId: string; user: { id: string; name: string } }
 type Task = {
   id: string; title: string; status: string; priority: string; section: string | null
   dueDate: string | null; completedAt: string | null
+  prestador: string | null; fornecedor: string | null; eixoTematico: string | null
   assignees: TaskAssignee[]; _count: { subtasks: number }
 }
 type ProjectMember = { userId: string; role: string; user: { id: string; name: string; avatar: string | null } }
@@ -37,6 +38,8 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
 
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [editTaskForm, setEditTaskForm] = useState({ title: '', status: '', priority: '', section: '', dueDate: '', prestador: '', fornecedor: '', eixoTematico: '' })
 
   const [showEditProject, setShowEditProject] = useState(false)
   const [showAddCost, setShowAddCost] = useState(false)
@@ -58,7 +61,7 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
   const [newCost, setNewCost] = useState({ category: 'Equipamento', description: '', estimated: '', actual: '', supplier: '' })
   const [newMemberId, setNewMemberId] = useState('')
   const [newMemberRole, setNewMemberRole] = useState('member')
-  const [newTask, setNewTask] = useState({ title: '', section: 'Geral', priority: 'MEDIUM' })
+  const [newTask, setNewTask] = useState({ title: '', section: 'Geral', priority: 'MEDIUM', prestador: '', fornecedor: '', eixoTematico: '' })
   const [saving, setSaving] = useState(false)
 
   const status = PROJECT_STATUSES.find(s => s.key === project.status)
@@ -86,6 +89,33 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
   async function saveEditTask(id: string) {
     const res = await fetch(`/api/tasks/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: editingTitle }) })
     if (res.ok) { setTasks(prev => prev.map(t => t.id === id ? { ...t, title: editingTitle } : t)); setEditingTaskId(null) }
+  }
+
+  function openEditTask(task: Task) {
+    setEditingTask(task)
+    setEditTaskForm({
+      title: task.title, status: task.status, priority: task.priority,
+      section: task.section ?? 'Geral',
+      dueDate: task.dueDate ? task.dueDate.slice(0, 10) : '',
+      prestador: task.prestador ?? '', fornecedor: task.fornecedor ?? '', eixoTematico: task.eixoTematico ?? '',
+    })
+  }
+
+  async function saveTaskModal() {
+    if (!editingTask) return
+    const body = {
+      title: editTaskForm.title, status: editTaskForm.status, priority: editTaskForm.priority,
+      section: editTaskForm.section || null,
+      dueDate: editTaskForm.dueDate || null,
+      prestador: editTaskForm.prestador || null,
+      fornecedor: editTaskForm.fornecedor || null,
+      eixoTematico: editTaskForm.eixoTematico || null,
+    }
+    const res = await fetch(`/api/tasks/${editingTask.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    if (res.ok) {
+      setTasks(prev => prev.map(t => t.id === editingTask.id ? { ...t, ...body } : t))
+      setEditingTask(null)
+    }
   }
 
   async function addTask() {
@@ -202,14 +232,21 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
           </div>
 
           {showAddTask && (
-            <div className="px-5 py-3 bg-blue-50 border-b border-blue-100 flex gap-2 flex-wrap">
-              <input value={newTask.title} onChange={e => setNewTask(p => ({ ...p, title: e.target.value }))} onKeyDown={e => e.key === 'Enter' && addTask()} placeholder="Nome da tarefa..." className="flex-1 min-w-40 border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
-              <input value={newTask.section} onChange={e => setNewTask(p => ({ ...p, section: e.target.value }))} placeholder="Seção" className="w-32 border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none" />
-              <select value={newTask.priority} onChange={e => setNewTask(p => ({ ...p, priority: e.target.value }))} className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none">
-                <option value="LOW">Baixa</option><option value="MEDIUM">Média</option><option value="HIGH">Alta</option><option value="URGENT">Urgente</option>
-              </select>
-              <button onClick={addTask} className="bg-blue-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-blue-700">Adicionar</button>
-              <button onClick={() => setShowAddTask(false)} className="text-gray-500 hover:text-gray-700 text-xs px-2 py-1.5"><X size={14} /></button>
+            <div className="px-5 py-3 bg-blue-50 border-b border-blue-100 space-y-2">
+              <div className="flex gap-2 flex-wrap">
+                <input value={newTask.title} onChange={e => setNewTask(p => ({ ...p, title: e.target.value }))} onKeyDown={e => e.key === 'Enter' && addTask()} placeholder="Nome da tarefa *" className="flex-1 min-w-40 border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                <input value={newTask.section} onChange={e => setNewTask(p => ({ ...p, section: e.target.value }))} placeholder="Seção" className="w-32 border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none" />
+                <select value={newTask.priority} onChange={e => setNewTask(p => ({ ...p, priority: e.target.value }))} className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none">
+                  <option value="LOW">Baixa</option><option value="MEDIUM">Média</option><option value="HIGH">Alta</option><option value="URGENT">Urgente</option>
+                </select>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <input value={newTask.prestador} onChange={e => setNewTask(p => ({ ...p, prestador: e.target.value }))} placeholder="Prestador" className="w-36 border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none" />
+                <input value={newTask.fornecedor} onChange={e => setNewTask(p => ({ ...p, fornecedor: e.target.value }))} placeholder="Fornecedor" className="w-36 border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none" />
+                <input value={newTask.eixoTematico} onChange={e => setNewTask(p => ({ ...p, eixoTematico: e.target.value }))} placeholder="Eixo Temático" className="w-40 border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none" />
+                <button onClick={addTask} className="bg-blue-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-blue-700">Adicionar</button>
+                <button onClick={() => setShowAddTask(false)} className="text-gray-500 hover:text-gray-700 text-xs px-2 py-1.5"><X size={14} /></button>
+              </div>
             </div>
           )}
 
@@ -239,14 +276,19 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
                         ) : (
                           <>
                             <p className={`text-sm ${task.status === 'DONE' ? 'line-through text-gray-400' : 'text-gray-900'}`}>{task.title}</p>
-                            <p className="text-xs text-gray-500">{task.dueDate ? formatDate(task.dueDate) : 'Sem prazo'}{task._count.subtasks > 0 && ` • ${task._count.subtasks} subtarefas`}</p>
+                            <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                              <span className="text-xs text-gray-500">{task.dueDate ? formatDate(task.dueDate) : 'Sem prazo'}{task._count.subtasks > 0 && ` • ${task._count.subtasks} subtarefas`}</span>
+                              {task.prestador && <span className="text-xs bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded">{task.prestador}</span>}
+                              {task.fornecedor && <span className="text-xs bg-orange-50 text-orange-700 px-1.5 py-0.5 rounded">{task.fornecedor}</span>}
+                              {task.eixoTematico && <span className="text-xs bg-teal-50 text-teal-700 px-1.5 py-0.5 rounded">{task.eixoTematico}</span>}
+                            </div>
                           </>
                         )}
                       </div>
                       {!isEditing && (
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${ts?.color}20`, color: ts?.color ?? undefined }}>{ts?.label}</span>
-                          <button onClick={() => { setEditingTaskId(task.id); setEditingTitle(task.title) }} className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600"><Edit2 size={12} /></button>
+                          <button onClick={() => openEditTask(task)} className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600"><Edit2 size={12} /></button>
                           <button onClick={() => deleteTask(task.id)} className="p-1 hover:bg-red-50 rounded text-gray-400 hover:text-red-500"><Trash2 size={12} /></button>
                         </div>
                       )}
@@ -349,6 +391,64 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
           </div>
         </div>
       </div>
+
+      {/* Edit Task Modal */}
+      {editingTask && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h3 className="font-semibold text-gray-900">Editar Tarefa</h3>
+              <button onClick={() => setEditingTask(null)}><X size={18} className="text-gray-400" /></button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="text-xs font-medium text-gray-700 block mb-1">Título *</label>
+                <input value={editTaskForm.title} onChange={e => setEditTaskForm(p => ({ ...p, title: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-700 block mb-1">Status</label>
+                  <select value={editTaskForm.status} onChange={e => setEditTaskForm(p => ({ ...p, status: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none">
+                    {TASK_STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700 block mb-1">Prioridade</label>
+                  <select value={editTaskForm.priority} onChange={e => setEditTaskForm(p => ({ ...p, priority: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none">
+                    <option value="LOW">Baixa</option><option value="MEDIUM">Média</option><option value="HIGH">Alta</option><option value="URGENT">Urgente</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-700 block mb-1">Seção</label>
+                  <input value={editTaskForm.section} onChange={e => setEditTaskForm(p => ({ ...p, section: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700 block mb-1">Prazo</label>
+                  <input type="date" value={editTaskForm.dueDate} onChange={e => setEditTaskForm(p => ({ ...p, dueDate: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-700 block mb-1">Prestador</label>
+                <input value={editTaskForm.prestador} onChange={e => setEditTaskForm(p => ({ ...p, prestador: e.target.value }))} placeholder="Nome do prestador de serviço" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-700 block mb-1">Fornecedor</label>
+                <input value={editTaskForm.fornecedor} onChange={e => setEditTaskForm(p => ({ ...p, fornecedor: e.target.value }))} placeholder="Nome do fornecedor" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-700 block mb-1">Eixo Temático</label>
+                <input value={editTaskForm.eixoTematico} onChange={e => setEditTaskForm(p => ({ ...p, eixoTematico: e.target.value }))} placeholder="Eixo temático do projeto" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" />
+              </div>
+            </div>
+            <div className="flex gap-3 px-5 pb-5">
+              <button onClick={() => setEditingTask(null)} className="flex-1 border border-gray-200 text-gray-600 text-sm py-2 rounded-lg hover:bg-gray-50">Cancelar</button>
+              <button onClick={saveTaskModal} className="flex-1 bg-blue-600 text-white text-sm py-2 rounded-lg hover:bg-blue-700">Salvar</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Edit Project Modal */}
       {showEditProject && (
