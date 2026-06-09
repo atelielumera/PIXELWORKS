@@ -38,15 +38,15 @@ async function getUsers() {
   })
 }
 
-export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export default async function ProjectDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ task?: string }> }) {
+  const [{ id }, { task: highlightTaskId }] = await Promise.all([params, searchParams])
   const [project, users] = await Promise.all([getProject(id), getUsers()])
   if (!project) notFound()
 
   return (
     <div>
       <Header title={project.name} subtitle={project.client?.name ?? 'Projeto'} />
-      <ProjectDetailClient project={project as any} users={users} />
+      <ProjectDetailClient project={project as any} users={users} highlightTaskId={highlightTaskId} />
     </div>
   )
 }
