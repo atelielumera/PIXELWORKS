@@ -8,11 +8,13 @@ import { PROJECT_STATUSES, TASK_STATUSES } from '@/lib/constants'
 
 type User = { id: string; name: string; email: string; role: string; department: string | null; avatar: string | null }
 type TaskAssignee = { userId: string; user: { id: string; name: string } }
+type CustomField = { id: string; name: string; fieldType: string; sortOrder: number }
 type Task = {
   id: string; title: string; status: string; priority: string; section: string | null
   dueDate: string | null; completedAt: string | null
   prestador: string | null; fornecedor: string | null; eixoTematico: string | null
   assignees: TaskAssignee[]; _count: { subtasks: number }
+  customFieldValues: { fieldId: string; value: string | null }[]
 }
 type ProjectMember = { userId: string; role: string; user: { id: string; name: string; avatar: string | null } }
 type Cost = { id: string; category: string; description: string; estimated: string | null; actual: string | null; supplier: string | null }
@@ -26,6 +28,7 @@ type Project = {
   client: { id: string; name: string } | null
   solution: { id: string; name: string; color: string | null } | null
   tasks: Task[]; members: ProjectMember[]; costs: Cost[]
+  customFields: CustomField[]
 }
 
 const PRIORITY_STYLE: Record<string, { label: string; color: string }> = {
@@ -68,6 +71,9 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
   const [tasks, setTasks] = useState(initial.tasks)
   const [costs, setCosts] = useState(initial.costs)
   const [members, setMembers] = useState(initial.members)
+  const [customFields, setCustomFields] = useState<CustomField[]>(initial.customFields ?? [])
+  const [addingField, setAddingField] = useState(false)
+  const [newFieldName, setNewFieldName] = useState('')
   const [activeTab, setActiveTab] = useState<Tab>('lista')
 
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
@@ -132,6 +138,41 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
   async function patchTask(id: string, data: Partial<Task>) {
     const res = await fetch(`/api/tasks/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
     if (res.ok) setTasks(prev => prev.map(t => t.id === id ? { ...t, ...data } : t))
+  }
+
+  async function saveCustomFieldValue(taskId: string, fieldId: string, value: string) {
+    await fetch(`/api/tasks/${taskId}/field-values`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fieldId, value }),
+    })
+    setTasks(prev => prev.map(t => {
+      if (t.id !== taskId) return t
+      const existing = t.customFieldValues.find(v => v.fieldId === fieldId)
+      if (existing) return { ...t, customFieldValues: t.customFieldValues.map(v => v.fieldId === fieldId ? { ...v, value } : v) }
+      return { ...t, customFieldValues: [...t.customFieldValues, { fieldId, value }] }
+    }))
+  }
+
+  async function addCustomField() {
+    if (!newFieldName.trim()) { setAddingField(false); return }
+    const res = await fetch(`/api/projects/${project.id}/fields`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newFieldName.trim() }),
+    })
+    if (res.ok) {
+      const { data } = await res.json()
+      setCustomFields(prev => [...prev, data])
+      setNewFieldName('')
+      setAddingField(false)
+    }
+  }
+
+  async function deleteCustomField(fieldId: string) {
+    await fetch(`/api/projects/${project.id}/fields/${fieldId}`, { method: 'DELETE' })
+    setCustomFields(prev => prev.filter(f => f.id !== fieldId))
+    setTasks(prev => prev.map(t => ({ ...t, customFieldValues: t.customFieldValues.filter(v => v.fieldId !== fieldId) })))
   }
 
   function openEditTask(task: Task) {
@@ -341,7 +382,7 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
                 backgroundColor: '#292a2e',
                 borderBottom: '1px solid #3d3f44',
                 color: '#6b7280',
-                gridTemplateColumns: '28px 1fr 110px 100px 110px 110px 110px 60px',
+                gridTemplateColumns: `28px 1fr 110px 100px 110px 110px 110px${customFields.map(() => ' 120px').join('')} 90px`,
               }}>
               <div />
               <div>Nome da Tarefa</div>
@@ -350,7 +391,41 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
               <div className="flex items-center gap-1"><Award size={11} className="text-yellow-500/70" />Prestador</div>
               <div className="flex items-center gap-1"><Award size={11} className="text-yellow-500/70" />Fornecedor</div>
               <div className="flex items-center gap-1"><Award size={11} className="text-yellow-500/70" />Eixo Temático</div>
-              <div />
+              {customFields.map(field => (
+                <div key={field.id} className="flex items-center gap-1 group/col">
+                  <Award size={11} style={{ color: '#ca8a04', opacity: 0.7 }} />
+                  <span className="truncate">{field.name}</span>
+                  <button onClick={() => deleteCustomField(field.id)}
+                    className="opacity-0 group-hover/col:opacity-100 ml-auto shrink-0 transition-opacity"
+                    style={{ color: '#4b5563' }}
+                    onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
+                    onMouseLeave={e => (e.currentTarget.style.color = '#4b5563')}>
+                    <X size={10} />
+                  </button>
+                </div>
+              ))}
+              {/* Botão + coluna */}
+              <div className="flex items-center">
+                {addingField ? (
+                  <div className="flex items-center gap-1">
+                    <input autoFocus value={newFieldName}
+                      onChange={e => setNewFieldName(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') addCustomField(); if (e.key === 'Escape') { setAddingField(false); setNewFieldName('') } }}
+                      onBlur={() => { if (!newFieldName.trim()) setAddingField(false) }}
+                      placeholder="Nome..." className="w-20 text-xs px-1.5 py-0.5 rounded"
+                      style={{ backgroundColor: '#32343a', border: '1px solid #3b82f6', color: '#f3f4f6', outline: 'none' }} />
+                    <button onClick={addCustomField} style={{ color: '#3b82f6' }}><Check size={12} /></button>
+                  </div>
+                ) : (
+                  <button onClick={() => setAddingField(true)}
+                    className="flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors normal-case font-normal tracking-normal"
+                    style={{ color: '#4b5563' }}
+                    onMouseEnter={e => (e.currentTarget.style.color = '#3b82f6')}
+                    onMouseLeave={e => (e.currentTarget.style.color = '#4b5563')}>
+                    <Plus size={12} />Coluna
+                  </button>
+                )}
+              </div>
             </div>
 
             {sections.map(section => {
@@ -375,7 +450,7 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
                             className="grid group items-center px-4 py-2 transition-colors"
                             style={{
                               borderBottom: '1px solid #2c2e33',
-                              gridTemplateColumns: '28px 1fr 110px 100px 110px 110px 110px 60px',
+                              gridTemplateColumns: `28px 1fr 110px 100px 110px 110px 110px${customFields.map(() => ' 120px').join('')} 90px`,
                               backgroundColor: 'transparent',
                             }}
                             onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)')}
@@ -417,6 +492,15 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
 
                             {/* Eixo Temático — inline editable */}
                             <InlineCell value={task.eixoTematico} placeholder="Eixo Temático" onSave={v => patchTask(task.id, { eixoTematico: v || null })} />
+
+                            {/* Campos personalizados dinâmicos */}
+                            {customFields.map(field => {
+                              const cfv = task.customFieldValues?.find(v => v.fieldId === field.id)
+                              return (
+                                <InlineCell key={field.id} value={cfv?.value ?? null} placeholder={field.name}
+                                  onSave={v => saveCustomFieldValue(task.id, field.id, v)} />
+                              )
+                            })}
 
                             {/* Ações */}
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 justify-end">

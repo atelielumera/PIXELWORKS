@@ -12,10 +12,15 @@ async function getProject(id: string) {
       deal: true,
       contract: true,
       members: { include: { user: { select: { id: true, name: true, avatar: true } } } },
+      customFields: { orderBy: { sortOrder: 'asc' } },
       tasks: {
         where: { parentId: null },
         orderBy: [{ status: 'asc' }, { createdAt: 'asc' }],
-        include: { assignees: { include: { user: { select: { id: true, name: true } } } }, _count: { select: { subtasks: true } } },
+        include: {
+          assignees: { include: { user: { select: { id: true, name: true } } } },
+          _count: { select: { subtasks: true } },
+          customFieldValues: true,
+        },
         take: 200,
       },
       costs: { orderBy: { createdAt: 'desc' } },
