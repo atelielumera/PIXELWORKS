@@ -173,6 +173,190 @@ async function main() {
     }
   }
   console.log('✓ Templates de projeto criados com seções reais')
+
+  // ============================================================
+  // PROJETOS REAIS DA PIXELSAV
+  // ============================================================
+  const solBySlug = Object.fromEntries(allSolutions.map(s => [s.slug, s]))
+  const adminUser = await prisma.user.findUnique({ where: { email: 'admin@pixelsav.com.br' } })
+
+  // Clientes reais
+  const clientsData = [
+    { name: 'Straub', email: 'contato@straub.com.br' },
+    { name: 'Capra', email: 'contato@capra.com.br' },
+    { name: 'Komm', email: 'contato@komm.com.br' },
+    { name: 'Shopping Mueller', email: 'contato@shopMueller.com.br' },
+    { name: 'Vale', email: 'contato@vale.com.br' },
+    { name: 'DSM', email: 'contato@dsm.com.br' },
+  ]
+  const clientMap: Record<string, string> = {}
+  for (const c of clientsData) {
+    const existing = await prisma.client.findFirst({ where: { name: c.name } })
+    if (existing) { clientMap[c.name] = existing.id }
+    else {
+      const created = await prisma.client.create({ data: { name: c.name, email: c.email } })
+      clientMap[c.name] = created.id
+    }
+  }
+  console.log('✓ Clientes reais criados')
+
+  // Projetos reais com tarefas do Asana
+  const realProjects = [
+    {
+      name: 'Straub - MPA Água e Cultura',
+      clientName: 'Straub',
+      solutionSlug: 'projecao-mapeada',
+      status: 'IN_PROGRESS',
+      tasks: [
+        { section: 'Arquivos de Referência', title: 'Plantas Camila Novak 21.05.2026', prestador: 'Caron' },
+        { section: 'Arquivos de Referência', title: 'Plantas Camila Novak 27.05.2026', prestador: 'Caron' },
+        { section: 'Arquivos de Referência', title: 'Imagens 3D Straub', prestador: 'Caron' },
+        { section: 'Arquivos de Referência', title: 'Vídeo 3D de apresentação do espaço', prestador: 'Caron' },
+        { section: 'Arquivos de Referência', title: 'Estudo de distância dos projetores', prestador: 'Caron' },
+        { section: 'Arquivos de Referência', title: 'Memorial Descritivo MPA Água e Cultura', prestador: 'Caron' },
+        { section: 'Conteúdo', title: 'Projeção Indígena', prestador: 'Caron' },
+        { section: 'Conteúdo', title: 'Mesa Interativa - Poço d\'água', prestador: 'Caron' },
+        { section: 'Conteúdo', title: 'Teatro Holográfico Água e Purificação', prestador: 'Caron' },
+        { section: 'Conteúdo', title: 'Display 24" Transparente', prestador: 'Caron' },
+        { section: 'Conteúdo', title: 'Projeção Espiritualidade', prestador: 'Caron' },
+        { section: 'Conteúdo', title: 'Projeção Contemplativa', prestador: 'Caron' },
+        { section: 'Conteúdo', title: 'Dúvida Posição Projetor', prestador: 'Caron' },
+        { section: 'Conteúdo', title: 'Projeção Gastronomia', prestador: 'Caron' },
+        { section: 'Conteúdo', title: 'Projeção Esportes/Banho', prestador: 'Caron' },
+        { section: 'Conteúdo', title: 'Mosaico Cinema e Música', prestador: 'Caron' },
+        { section: 'Geral', title: 'Relatório Final' },
+      ],
+    },
+    {
+      name: 'Galeria Capra 2026',
+      clientName: 'Capra',
+      solutionSlug: 'experiencia-imersiva',
+      status: 'IN_PROGRESS',
+      tasks: [
+        { section: 'Experiências', title: 'Minerador Holográfico' },
+        { section: 'Experiências', title: 'Show de Sombras e Luzes' },
+        { section: 'Experiências', title: 'Túnel Energize-se' },
+        { section: 'Experiências', title: 'Olho da Terra' },
+        { section: 'Experiências', title: 'Galeria dos Minerais' },
+        { section: 'Experiências', title: 'Caverna Imersiva Capra' },
+        { section: 'Geral', title: 'Relatório Final' },
+      ],
+    },
+    {
+      name: 'Komm - Positivo',
+      clientName: 'Komm',
+      solutionSlug: 'raio-x-interativo',
+      status: 'IN_PROGRESS',
+      tasks: [
+        { section: 'Equipamentos', title: 'Frames Touchscreen', prestador: 'Caron' },
+        { section: 'Equipamentos', title: 'Workstations', prestador: 'Caron' },
+        { section: 'Equipamentos', title: 'Racks Servidor 44U', prestador: 'Caron' },
+        { section: 'Equipamentos', title: 'Kits de Ventilação Duplo - Flex', prestador: 'Caron' },
+        { section: 'Software/Design', title: 'Programação Interativa' },
+        { section: 'Solução/Instalação', title: 'Montagem e Configuração dos Racks (Piloto)', prestador: 'Caron' },
+        { section: 'Solução/Instalação', title: 'Entrega em Curitiba', prestador: 'Caron' },
+        { section: 'Geral', title: 'Relatório Final' },
+      ],
+    },
+    {
+      name: 'Shopping Mueller - Jogo de Futebol',
+      clientName: 'Shopping Mueller',
+      solutionSlug: 'piso-interativo',
+      status: 'IN_PROGRESS',
+      tasks: [
+        { section: 'Equipamentos', title: 'Tela de Led', prestador: 'Caron' },
+        { section: 'Equipamentos', title: 'Suporte p/ Sensor Lidar', prestador: 'Caron' },
+        { section: 'Equipamentos', title: 'Sensor Lidar', prestador: 'Caron' },
+        { section: 'Equipamentos', title: 'Workstation', prestador: 'Caron' },
+        { section: 'Software/Design', title: 'Programação Jogo de Futebol 1', prestador: 'Caron' },
+        { section: 'Software/Design', title: 'Design', prestador: 'Caron' },
+        { section: 'Solução/Instalação', title: 'Auxiliar Técnico', prestador: 'Caron' },
+        { section: 'Solução/Instalação', title: 'Técnico Responsável', prestador: 'Caron' },
+        { section: 'Geral', title: 'Relatório Final' },
+      ],
+    },
+    {
+      name: 'Vale - Sala Imersiva BH',
+      clientName: 'Vale',
+      solutionSlug: 'sala-imersiva-360',
+      status: 'IN_PROGRESS',
+      tasks: [
+        { section: 'Arquivos de Referência', title: 'Plantas e dimensões da sala' },
+        { section: 'Equipamentos', title: 'Projetores (quantidade/modelo)' },
+        { section: 'Equipamentos', title: 'Servidores / Workstations' },
+        { section: 'Software/Design', title: 'Conteúdo 360°' },
+        { section: 'Software/Design', title: 'Programação Imersiva' },
+        { section: 'Solução/Instalação', title: 'Montagem da estrutura' },
+        { section: 'Solução/Instalação', title: 'Alinhamento dos projetores' },
+        { section: 'Geral', title: 'Relatório Final' },
+      ],
+    },
+    {
+      name: 'Vale - Memorial Serra Sul',
+      clientName: 'Vale',
+      solutionSlug: 'museu-memorial',
+      status: 'IN_PROGRESS',
+      tasks: [
+        { section: 'Arquivos de Referência', title: 'Plantas do espaço' },
+        { section: 'Arquivos de Referência', title: 'Conceito expográfico' },
+        { section: 'Arquivos de Referência', title: 'Memorial Descritivo' },
+        { section: 'Equipamentos', title: 'Displays / Totens' },
+        { section: 'Equipamentos', title: 'Workstations' },
+        { section: 'Software/Design', title: 'Desenvolvimento do conteúdo' },
+        { section: 'Software/Design', title: 'Programação interativa' },
+        { section: 'Solução/Instalação', title: 'Montagem e configuração' },
+        { section: 'Solução/Instalação', title: 'Testes e homologação' },
+        { section: 'Geral', title: 'Relatório Final' },
+      ],
+    },
+    {
+      name: 'Estação Brasil - DSM Guatemala',
+      clientName: 'DSM',
+      solutionSlug: 'projecao-mapeada',
+      status: 'DONE',
+      tasks: [
+        { section: 'Arquivos de Referência', title: 'Plantas do espaço', status: 'DONE' },
+        { section: 'Equipamentos', title: 'Projetor(es)', status: 'DONE' },
+        { section: 'Equipamentos', title: 'Servidor / Workstation', status: 'DONE' },
+        { section: 'Software/Design', title: 'Conteúdo de Projeção', status: 'DONE' },
+        { section: 'Software/Design', title: 'Programação / Mapping', status: 'DONE' },
+        { section: 'Solução/Instalação', title: 'Entrega e Montagem', status: 'DONE' },
+        { section: 'Geral', title: 'Relatório Final', status: 'DONE' },
+      ],
+    },
+  ]
+
+  for (const proj of realProjects) {
+    const exists = await prisma.project.findFirst({ where: { name: proj.name } })
+    if (!exists) {
+      const sol = solBySlug[proj.solutionSlug]
+      const created = await prisma.project.create({
+        data: {
+          name: proj.name,
+          code: `PSV-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+          clientId: clientMap[proj.clientName] ?? null,
+          solutionId: sol?.id ?? null,
+          status: proj.status as any,
+          createdById: adminUser?.id ?? null,
+        },
+      })
+      for (const [i, t] of proj.tasks.entries()) {
+        await prisma.task.create({
+          data: {
+            projectId: created.id,
+            title: t.title,
+            section: t.section,
+            status: (t as any).status ?? 'TODO',
+            priority: 'MEDIUM',
+            prestador: (t as any).prestador ?? null,
+            createdById: adminUser?.id ?? null,
+          },
+        })
+      }
+      console.log(`  ✓ Projeto criado: ${proj.name}`)
+    }
+  }
+  console.log('✓ Projetos reais PixelSAV criados')
   console.log('✅ Seed concluído!')
 }
 
