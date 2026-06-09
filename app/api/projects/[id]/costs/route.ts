@@ -19,7 +19,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id: projectId } = await params
+  await params
   const { searchParams } = new URL(req.url)
   const costId = searchParams.get('costId')
   if (!costId) return NextResponse.json({ error: 'costId required' }, { status: 400 })

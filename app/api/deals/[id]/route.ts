@@ -10,7 +10,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       lead: true,
       solution: true,
       responsible: { select: { id: true, name: true, email: true } },
-      proposals: { orderBy: { createdAt: 'desc' } },
+      proposal: true,
     },
   })
   if (!deal) return NextResponse.json({ error: 'Not found' }, { status: 404 })

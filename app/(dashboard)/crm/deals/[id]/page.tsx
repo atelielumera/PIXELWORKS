@@ -19,7 +19,7 @@ type Deal = {
   client: { id: string; name: string } | null
   lead: { id: string; contactName: string; company: string | null } | null
   solution: Solution | null; responsible: User | null
-  proposals: Proposal[]
+  proposal: Proposal | null
 }
 
 const PROPOSAL_STATUS_STYLE: Record<string, string> = { DRAFT: 'bg-gray-50 text-gray-600', SENT: 'bg-blue-50 text-blue-700', APPROVED: 'bg-green-50 text-green-700', REJECTED: 'bg-red-50 text-red-700', EXPIRED: 'bg-yellow-50 text-yellow-700' }
@@ -125,23 +125,19 @@ export default function DealDetailPage() {
               )}
             </div>
 
-            {/* Proposals */}
+            {/* Proposal */}
             <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <h3 className="font-semibold text-gray-900 mb-4">Propostas ({deal.proposals.length})</h3>
-              {deal.proposals.length === 0 ? <p className="text-sm text-gray-500">Nenhuma proposta gerada.</p> : (
-                <div className="divide-y divide-gray-50">
-                  {deal.proposals.map(p => (
-                    <div key={p.id} className="flex items-center justify-between py-3">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{p.code}</p>
-                        <p className="text-xs text-gray-500">Válido até {formatDate(p.validUntil)} • Criado em {formatDate(p.createdAt)}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm text-gray-900">{formatCurrency(p.totalValue ? Number(p.totalValue) : null)}</span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${PROPOSAL_STATUS_STYLE[p.status] ?? 'bg-gray-50 text-gray-600'}`}>{PROPOSAL_STATUS_LABEL[p.status] ?? p.status}</span>
-                      </div>
-                    </div>
-                  ))}
+              <h3 className="font-semibold text-gray-900 mb-4">Proposta</h3>
+              {!deal.proposal ? <p className="text-sm text-gray-500">Nenhuma proposta gerada.</p> : (
+                <div className="flex items-center justify-between py-3">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{deal.proposal.code}</p>
+                    <p className="text-xs text-gray-500">Válido até {formatDate(deal.proposal.validUntil)} • Criado em {formatDate(deal.proposal.createdAt)}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm text-gray-900">{formatCurrency(deal.proposal.totalValue ? Number(deal.proposal.totalValue) : null)}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${PROPOSAL_STATUS_STYLE[deal.proposal.status] ?? 'bg-gray-50 text-gray-600'}`}>{PROPOSAL_STATUS_LABEL[deal.proposal.status] ?? deal.proposal.status}</span>
+                  </div>
                 </div>
               )}
             </div>

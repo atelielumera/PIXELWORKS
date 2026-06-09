@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Plus, Trash2, Edit2, Check, X, UserPlus, DollarSign, ChevronDown } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Edit2, Check, X, UserPlus } from 'lucide-react'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { PROJECT_STATUSES, TASK_STATUSES } from '@/lib/constants'
 
@@ -28,7 +28,6 @@ type Project = {
 }
 
 const TASK_NEXT: Record<string, string> = { TODO: 'IN_PROGRESS', IN_PROGRESS: 'IN_REVIEW', IN_REVIEW: 'DONE', DONE: 'TODO', CANCELLED: 'TODO' }
-const PRIORITY_COLOR: Record<string, string> = { URGENT: '#EF4444', HIGH: '#F97316', MEDIUM: '#F59E0B', LOW: '#6B7280' }
 
 export function ProjectDetailClient({ project: initial, users }: { project: Project; users: User[] }) {
   const [project, setProject] = useState(initial)
