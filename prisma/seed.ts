@@ -149,6 +149,25 @@ async function main() {
   })
   console.log('✓ Usuário admin criado: admin@pixelsav.com.br / pixelsav2025!')
 
+  // Usuários reais PixelSAV
+  const pixelsavHash = await bcrypt.hash('PixelSAV@123', 12)
+  const pixelsavUsers = [
+    { name: 'Flávio Dantas',  email: 'flaviodantas@pixelsav.com.br', role: 'ADMIN' },
+    { name: 'Denise Dantas',  email: 'denisedantas@pixelsav.com.br', role: 'ADMIN' },
+    { name: 'Emily',          email: 'emily@pixelsav.com.br',         role: 'ADMIN' },
+    { name: 'Caron',          email: 'caron@pixelsav.com.br',         role: 'ADMIN' },
+    { name: 'Fernando',       email: 'atendimento@pixelsav.com.br',   role: 'ADMIN' },
+  ]
+  for (const u of pixelsavUsers) {
+    await prisma.user.upsert({
+      where: { email: u.email },
+      update: { name: u.name, role: u.role as any },
+      create: { name: u.name, email: u.email, password: pixelsavHash, role: u.role as any },
+    })
+    console.log(`  ✓ Usuário: ${u.name} (${u.email})`)
+  }
+  console.log('✓ Usuários PixelSAV criados')
+
   const allSolutions = await prisma.solution.findMany()
   for (const sol of allSolutions) {
     const tplName = `Template ${sol.name}`
