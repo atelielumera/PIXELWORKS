@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, Briefcase, CheckSquare, Calendar,
   DollarSign, ThumbsUp, Folder, Target, Brain, BarChart3,
   Zap, Download, Settings, Shield, FolderKanban, ChevronDown,
-  ChevronRight, Bell, LogOut
+  ChevronRight, Bell, LogOut, Building2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { signOut } from 'next-auth/react'
@@ -33,6 +33,7 @@ const nav = [
     ],
   },
   { name: 'Tarefas', href: '/tasks', icon: CheckSquare },
+  { name: 'Equipes', href: '/teams', icon: Building2 },
   { name: 'Agenda', href: '/agenda', icon: Calendar },
   {
     name: 'Financeiro', icon: DollarSign,

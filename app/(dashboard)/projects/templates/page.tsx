@@ -1,5 +1,7 @@
 import { Header } from '@/components/layout/header'
 import { prisma } from '@/lib/db'
+import Link from 'next/link'
+import { Plus } from 'lucide-react'
 
 async function getTemplates() {
   return prisma.projectTemplate.findMany({
@@ -16,7 +18,7 @@ export default async function TemplatesPage() {
       <div className="p-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {templates.map(tpl => (
-            <div key={tpl.id} className="bg-white rounded-xl border border-gray-200 p-5">
+            <Link key={tpl.id} href={`/projects/templates/${tpl.id}`} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer block">
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <h3 className="font-semibold text-gray-900 text-sm">{tpl.name}</h3>
@@ -30,8 +32,11 @@ export default async function TemplatesPage() {
                   <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">Padrão</span>
                 )}
               </div>
-              <p className="text-xs text-gray-500">{tpl._count.tasks} tarefas</p>
-            </div>
+              <div className="flex items-center justify-between mt-3">
+                <p className="text-xs text-gray-500">{tpl._count.tasks} tarefas</p>
+                <span className="text-xs text-blue-600 font-medium">Ver tarefas →</span>
+              </div>
+            </Link>
           ))}
         </div>
       </div>
