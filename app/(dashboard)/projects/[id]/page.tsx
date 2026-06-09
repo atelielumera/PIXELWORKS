@@ -9,6 +9,8 @@ async function getProject(id: string) {
     include: {
       client: true,
       solution: true,
+      deal: true,
+      contract: true,
       members: { include: { user: { select: { id: true, name: true, avatar: true } } } },
       tasks: {
         where: { parentId: null },
@@ -17,6 +19,8 @@ async function getProject(id: string) {
         take: 200,
       },
       costs: { orderBy: { createdAt: 'desc' } },
+      approvals: { orderBy: { createdAt: 'desc' }, take: 10 },
+      _count: { select: { tasks: true, timeEntries: true, files: true } },
     },
   })
 }
