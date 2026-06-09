@@ -138,6 +138,101 @@ function ComboCell({ value, suggestions, onSave, placeholder, type = 'TEXT' }: {
   )
 }
 
+// ─── Date cell: inline date picker ──────────────────────────────────────────
+function DateCell({ value, onSave }: { value: string | null; onSave: (v: string | null) => void }) {
+  const [editing, setEditing] = useState(false)
+  if (editing) return (
+    <input type="date" autoFocus
+      defaultValue={value ? value.slice(0, 10) : ''}
+      onChange={e => { onSave(e.target.value || null); setEditing(false) }}
+      onBlur={() => setEditing(false)}
+      className="text-xs px-1 py-0.5 rounded outline-none w-full"
+      style={{ backgroundColor: '#32343a', border: '1px solid #3b82f6', color: '#d1d5db', colorScheme: 'dark' }}
+    />
+  )
+  const isOverdue = value && new Date(value) < new Date() ? true : false
+  return (
+    <button onClick={() => setEditing(true)}
+      className="text-xs hover:bg-white/5 px-2 py-1 rounded transition-colors w-full text-left"
+      style={{ color: value ? (isOverdue ? '#ef4444' : '#9ca3af') : '#3d3f44' }}>
+      {value ? formatDate(value) : '—'}
+    </button>
+  )
+}
+
+// ─── Assignee cell: multi-select dropdown of users ───────────────────────────
+function AssigneeCell({ assignees, users, onSave }: {
+  assignees: TaskAssignee[]; users: User[]; onSave: (ids: string[]) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [selected, setSelected] = useState<string[]>(assignees.map(a => a.userId))
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => { setSelected(assignees.map(a => a.userId)) }, [assignees])
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) { onSave(selected); setOpen(false) }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open, selected, onSave])
+
+  function toggle(id: string) {
+    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <button onClick={() => setOpen(o => !o)} className="flex -space-x-1 hover:opacity-80 transition-opacity">
+        {assignees.slice(0, 3).map(a => (
+          <div key={a.userId} className="w-5 h-5 rounded-full bg-blue-600 border border-[#1e1f21] flex items-center justify-center text-white text-[9px] font-bold shrink-0" title={a.user.name}>
+            {a.user.name.charAt(0)}
+          </div>
+        ))}
+        {assignees.length === 0 && (
+          <div className="w-5 h-5 rounded-full border-2 border-dashed flex items-center justify-center" style={{ borderColor: '#3d3f44' }}>
+            <UserPlus size={9} style={{ color: '#4b5563' }} />
+          </div>
+        )}
+      </button>
+      {open && (
+        <div className="absolute z-50 top-full left-0 mt-0.5 rounded-lg overflow-hidden shadow-2xl"
+          style={{ backgroundColor: '#292a2e', border: '1px solid #3d3f44', minWidth: 170 }}>
+          <div className="max-h-48 overflow-y-auto py-1">
+            {users.map(u => {
+              const sel = selected.includes(u.id)
+              return (
+                <button key={u.id} onClick={() => toggle(u.id)}
+                  className="flex items-center gap-2 w-full text-left px-3 py-1.5 text-xs transition-colors"
+                  style={{ color: sel ? '#f3f4f6' : '#9ca3af' }}
+                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)')}
+                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}>
+                  {u.avatar ? (
+                    <img src={u.avatar} alt={u.name} className="w-5 h-5 rounded-full object-cover shrink-0" />
+                  ) : (
+                    <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white text-[9px] font-bold shrink-0">{u.name.charAt(0)}</div>
+                  )}
+                  <span className="truncate flex-1">{u.name}</span>
+                  {sel && <Check size={10} className="shrink-0" style={{ color: '#3b82f6' }} />}
+                </button>
+              )
+            })}
+            {users.length === 0 && <p className="px-3 py-2 text-xs" style={{ color: '#4b5563' }}>Sem usuários</p>}
+          </div>
+          <div className="border-t px-3 py-2" style={{ borderColor: '#3d3f44' }}>
+            <button onClick={() => { onSave(selected); setOpen(false) }}
+              className="text-xs w-full py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+              Confirmar
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function ProjectDetailClient({ project: initial, users, highlightTaskId }: { project: Project; users: User[]; highlightTaskId?: string }) {
   const [project, setProject] = useState(initial)
   const [tasks, setTasks] = useState(initial.tasks)
@@ -218,6 +313,16 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
   async function patchTask(id: string, data: Partial<Task>) {
     const res = await fetch(`/api/tasks/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
     if (res.ok) setTasks(prev => prev.map(t => t.id === id ? { ...t, ...data } : t))
+  }
+
+  async function patchTaskAssignees(taskId: string, userIds: string[]) {
+    const res = await fetch(`/api/tasks/${taskId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ assigneeIds: userIds }) })
+    if (res.ok) {
+      setTasks(prev => prev.map(t => {
+        if (t.id !== taskId) return t
+        return { ...t, assignees: userIds.map(id => { const u = users.find(u => u.id === id)!; return { userId: id, user: { id, name: u.name } } }) }
+      }))
+    }
   }
 
   async function saveCustomFieldValue(taskId: string, fieldId: string, value: string) {
@@ -566,19 +671,17 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
                             </span>
 
                             {/* Responsável */}
-                            <div className="flex -space-x-1">
-                              {task.assignees.slice(0, 2).map(a => (
-                                <div key={a.userId} className="w-5 h-5 rounded-full bg-blue-600 border border-[#1e1f21] flex items-center justify-center text-white text-[9px] font-bold" title={a.user.name}>
-                                  {a.user.name.charAt(0)}
-                                </div>
-                              ))}
-                              {task.assignees.length === 0 && <span className="text-xs" style={{ color: '#3d3f44' }}>—</span>}
-                            </div>
+                            <AssigneeCell
+                              assignees={task.assignees}
+                              users={users}
+                              onSave={ids => patchTaskAssignees(task.id, ids)}
+                            />
 
                             {/* Prazo */}
-                            <span className="text-xs" style={{ color: task.dueDate ? '#9ca3af' : '#3d3f44' }}>
-                              {task.dueDate ? formatDate(task.dueDate) : '—'}
-                            </span>
+                            <DateCell
+                              value={task.dueDate}
+                              onSave={v => patchTask(task.id, { dueDate: v })}
+                            />
 
                             {/* Prestador — combobox com sugestões */}
                             <ComboCell value={task.prestador} placeholder="Prestador"
