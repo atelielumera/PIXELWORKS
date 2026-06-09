@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Plus, Trash2, Edit2, Check, X, UserPlus, ChevronDown, ChevronRight, Award, Calendar, DollarSign, Users, LayoutGrid, List, BarChart3, Clock, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Edit2, Check, X, UserPlus, ChevronDown, ChevronRight, Award, Calendar, DollarSign, Users, LayoutGrid, List, BarChart3, Clock, AlertCircle, CheckCircle2, Type, Hash } from 'lucide-react'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { PROJECT_STATUSES, TASK_STATUSES } from '@/lib/constants'
 
@@ -42,27 +42,99 @@ const STATUS_NEXT: Record<string, string> = { TODO: 'IN_PROGRESS', IN_PROGRESS: 
 
 type Tab = 'overview' | 'lista' | 'quadro' | 'cronograma' | 'painel'
 
-// ─── Inline editable cell ───────────────────────────────────────────────────
-function InlineCell({ value, onSave, placeholder }: { value: string | null; onSave: (v: string) => void; placeholder: string }) {
+// ─── Combo cell: dropdown with suggestions + add new ────────────────────────
+function ComboCell({ value, suggestions, onSave, placeholder, type = 'TEXT' }: {
+  value: string | null; suggestions: string[]; onSave: (v: string) => void; placeholder: string; type?: string
+}) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
   const [editing, setEditing] = useState(false)
   const [val, setVal] = useState(value ?? '')
-  if (editing) return (
-    <input
-      autoFocus value={val}
-      onChange={e => setVal(e.target.value)}
-      onBlur={() => { onSave(val); setEditing(false) }}
-      onKeyDown={e => { if (e.key === 'Enter') { onSave(val); setEditing(false) } if (e.key === 'Escape') setEditing(false) }}
-      className="w-full px-1.5 py-0.5 text-xs rounded border border-blue-500 bg-[#32343a] text-gray-100 outline-none"
-      style={{ minWidth: 80 }}
-    />
-  )
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => { setVal(value ?? '') }, [value])
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); setQuery('') }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  if (type === 'CURRENCY') {
+    if (editing) return (
+      <input autoFocus value={val} onChange={e => setVal(e.target.value)}
+        onBlur={() => { onSave(val); setEditing(false) }}
+        onKeyDown={e => { if (e.key === 'Enter') { onSave(val); setEditing(false) } if (e.key === 'Escape') setEditing(false) }}
+        placeholder="0.00" className="w-full px-1.5 py-0.5 text-xs rounded border border-blue-500 bg-[#32343a] text-green-400 outline-none"
+        style={{ minWidth: 80 }} />
+    )
+    return (
+      <button onClick={() => { setVal(value ?? ''); setEditing(true) }}
+        className="w-full text-left px-2 py-1 rounded text-xs hover:bg-white/5 transition-colors"
+        style={{ color: value ? '#22c55e' : '#4b5563' }}>
+        {value ? formatCurrency(parseFloat(value) || 0) : <span style={{ color: '#3d3f44' }}>{placeholder}</span>}
+      </button>
+    )
+  }
+
+  const uniq = [...new Set(suggestions.filter(Boolean))]
+  const filtered = uniq.filter(s => !query || s.toLowerCase().includes(query.toLowerCase()))
+  const canAdd = query.trim() !== '' && !uniq.some(s => s.toLowerCase() === query.trim().toLowerCase())
+
+  function select(v: string) { onSave(v); setOpen(false); setQuery('') }
+
   return (
-    <button onClick={() => { setVal(value ?? ''); setEditing(true) }}
-      className="w-full text-left px-2 py-1 rounded text-xs hover:bg-white/5 transition-colors"
-      style={{ color: value ? '#d1d5db' : '#4b5563' }}
-    >
-      {value || <span className="text-[#3d3f44]">{placeholder}</span>}
-    </button>
+    <div ref={ref} className="relative">
+      <button onClick={() => { setOpen(o => !o); setQuery('') }}
+        className="w-full text-left px-2 py-1 rounded text-xs hover:bg-white/5 transition-colors"
+        style={{ color: value ? '#d1d5db' : '#4b5563' }}>
+        {value || <span style={{ color: '#3d3f44' }}>{placeholder}</span>}
+      </button>
+      {open && (
+        <div className="absolute z-50 top-full left-0 mt-0.5 rounded-lg overflow-hidden shadow-2xl"
+          style={{ backgroundColor: '#292a2e', border: '1px solid #3d3f44', minWidth: 180 }}>
+          <input autoFocus value={query} onChange={e => setQuery(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && query.trim()) select(query.trim()); if (e.key === 'Escape') { setOpen(false); setQuery('') } }}
+            placeholder="Buscar ou digitar..."
+            className="w-full px-3 py-2 text-xs outline-none border-b"
+            style={{ backgroundColor: '#32343a', borderColor: '#3d3f44', color: '#f3f4f6' }} />
+          <div className="max-h-44 overflow-y-auto">
+            {value && (
+              <button onClick={() => select('')} className="flex items-center gap-2 w-full text-left px-3 py-1.5 text-xs"
+                style={{ color: '#6b7280' }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}>
+                <X size={10} />Limpar
+              </button>
+            )}
+            {filtered.map(s => (
+              <button key={s} onClick={() => select(s)} className="w-full text-left px-3 py-1.5 text-xs"
+                style={{ color: '#d1d5db' }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}>
+                {s}
+              </button>
+            ))}
+            {canAdd && (
+              <button onClick={() => select(query.trim())} className="flex items-center gap-2 w-full text-left px-3 py-1.5 text-xs"
+                style={{ color: '#3b82f6' }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(59,130,246,0.08)')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}>
+                <Plus size={10} />Adicionar &quot;{query.trim()}&quot;
+              </button>
+            )}
+            {filtered.length === 0 && !canAdd && (
+              <p className="px-3 py-2 text-xs" style={{ color: '#4b5563' }}>
+                {query ? 'Sem resultados' : 'Sem valores ainda. Digite para adicionar.'}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -74,6 +146,7 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
   const [customFields, setCustomFields] = useState<CustomField[]>(initial.customFields ?? [])
   const [addingField, setAddingField] = useState(false)
   const [newFieldName, setNewFieldName] = useState('')
+  const [newFieldType, setNewFieldType] = useState<'TEXT' | 'CURRENCY'>('TEXT')
   const [activeTab, setActiveTab] = useState<Tab>('lista')
 
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
@@ -159,13 +232,12 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
     const res = await fetch(`/api/projects/${project.id}/fields`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newFieldName.trim() }),
+      body: JSON.stringify({ name: newFieldName.trim(), fieldType: newFieldType }),
     })
     if (res.ok) {
       const { data } = await res.json()
       setCustomFields(prev => [...prev, data])
-      setNewFieldName('')
-      setAddingField(false)
+      setNewFieldName(''); setNewFieldType('TEXT'); setAddingField(false)
     }
   }
 
@@ -407,14 +479,28 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
               {/* Botão + coluna */}
               <div className="flex items-center">
                 {addingField ? (
-                  <div className="flex items-center gap-1">
-                    <input autoFocus value={newFieldName}
-                      onChange={e => setNewFieldName(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') addCustomField(); if (e.key === 'Escape') { setAddingField(false); setNewFieldName('') } }}
-                      onBlur={() => { if (!newFieldName.trim()) setAddingField(false) }}
-                      placeholder="Nome..." className="w-20 text-xs px-1.5 py-0.5 rounded"
-                      style={{ backgroundColor: '#32343a', border: '1px solid #3b82f6', color: '#f3f4f6', outline: 'none' }} />
-                    <button onClick={addCustomField} style={{ color: '#3b82f6' }}><Check size={12} /></button>
+                  <div className="flex flex-col gap-1 py-0.5">
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => setNewFieldType('TEXT')}
+                        className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] transition-colors normal-case font-normal tracking-normal"
+                        style={{ backgroundColor: newFieldType === 'TEXT' ? '#2563eb' : '#32343a', color: newFieldType === 'TEXT' ? '#fff' : '#9ca3af', border: '1px solid #3d3f44' }}>
+                        <Type size={9} />Texto
+                      </button>
+                      <button onClick={() => setNewFieldType('CURRENCY')}
+                        className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] transition-colors normal-case font-normal tracking-normal"
+                        style={{ backgroundColor: newFieldType === 'CURRENCY' ? '#059669' : '#32343a', color: newFieldType === 'CURRENCY' ? '#fff' : '#9ca3af', border: '1px solid #3d3f44' }}>
+                        <Hash size={9} />Valor
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <input autoFocus value={newFieldName}
+                        onChange={e => setNewFieldName(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') addCustomField(); if (e.key === 'Escape') { setAddingField(false); setNewFieldName(''); setNewFieldType('TEXT') } }}
+                        onBlur={() => { if (!newFieldName.trim()) { setAddingField(false); setNewFieldType('TEXT') } }}
+                        placeholder="Nome..." className="w-20 text-xs px-1.5 py-0.5 rounded"
+                        style={{ backgroundColor: '#32343a', border: '1px solid #3b82f6', color: '#f3f4f6', outline: 'none' }} />
+                      <button onClick={addCustomField} style={{ color: '#3b82f6' }}><Check size={12} /></button>
+                    </div>
                   </div>
                 ) : (
                   <button onClick={() => setAddingField(true)}
@@ -484,20 +570,31 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
                               {task.dueDate ? formatDate(task.dueDate) : '—'}
                             </span>
 
-                            {/* Prestador — inline editable */}
-                            <InlineCell value={task.prestador} placeholder="Prestador" onSave={v => patchTask(task.id, { prestador: v || null })} />
+                            {/* Prestador — combobox com sugestões */}
+                            <ComboCell value={task.prestador} placeholder="Prestador"
+                              suggestions={tasks.map(t => t.prestador).filter((v): v is string => !!v)}
+                              onSave={v => patchTask(task.id, { prestador: v || null })} />
 
-                            {/* Fornecedor — inline editable */}
-                            <InlineCell value={task.fornecedor} placeholder="Fornecedor" onSave={v => patchTask(task.id, { fornecedor: v || null })} />
+                            {/* Fornecedor — combobox com sugestões */}
+                            <ComboCell value={task.fornecedor} placeholder="Fornecedor"
+                              suggestions={tasks.map(t => t.fornecedor).filter((v): v is string => !!v)}
+                              onSave={v => patchTask(task.id, { fornecedor: v || null })} />
 
-                            {/* Eixo Temático — inline editable */}
-                            <InlineCell value={task.eixoTematico} placeholder="Eixo Temático" onSave={v => patchTask(task.id, { eixoTematico: v || null })} />
+                            {/* Eixo Temático — combobox com sugestões */}
+                            <ComboCell value={task.eixoTematico} placeholder="Eixo Temático"
+                              suggestions={tasks.map(t => t.eixoTematico).filter((v): v is string => !!v)}
+                              onSave={v => patchTask(task.id, { eixoTematico: v || null })} />
 
                             {/* Campos personalizados dinâmicos */}
                             {customFields.map(field => {
                               const cfv = task.customFieldValues?.find(v => v.fieldId === field.id)
+                              const fieldSuggestions = field.fieldType === 'TEXT'
+                                ? tasks.flatMap(t => t.customFieldValues.filter(v => v.fieldId === field.id && v.value)).map(v => v.value as string)
+                                : []
                               return (
-                                <InlineCell key={field.id} value={cfv?.value ?? null} placeholder={field.name}
+                                <ComboCell key={field.id} value={cfv?.value ?? null} placeholder={field.name}
+                                  type={field.fieldType}
+                                  suggestions={fieldSuggestions}
                                   onSave={v => saveCustomFieldValue(task.id, field.id, v)} />
                               )
                             })}
@@ -704,18 +801,52 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
             {/* Financeiro */}
             <div className="rounded-xl p-5" style={{ backgroundColor: '#292a2e', border: '1px solid #3d3f44' }}>
               <h3 className="text-sm font-semibold mb-4" style={{ color: '#f3f4f6' }}>Financeiro</h3>
-              <div className="grid grid-cols-3 gap-4">
-                {[
-                  { label: 'Orçamento Aprovado', value: formatCurrency(project.approvedBudget ? Number(project.approvedBudget) : null), color: '#3b82f6' },
-                  { label: 'Custos Reais', value: formatCurrency(totalCosts), color: '#f59e0b' },
-                  { label: 'Margem', value: formatCurrency(margin), color: margin !== null && margin < 0 ? '#ef4444' : '#22c55e' },
-                ].map(f => (
-                  <div key={f.label} className="text-center p-3 rounded-lg" style={{ backgroundColor: '#32343a' }}>
-                    <p className="text-xs mb-1" style={{ color: '#6b7280' }}>{f.label}</p>
-                    <p className="font-bold text-sm" style={{ color: f.color }}>{f.value}</p>
+              {(() => {
+                const currencyFields = customFields.filter(f => f.fieldType === 'CURRENCY')
+                const customCostsTotal = currencyFields.reduce((sum, field) => {
+                  const fieldSum = tasks.reduce((s, t) => {
+                    const cfv = t.customFieldValues?.find(v => v.fieldId === field.id)
+                    return s + (cfv?.value ? parseFloat(cfv.value) || 0 : 0)
+                  }, 0)
+                  return sum + fieldSum
+                }, 0)
+                const totalWithCustom = totalCosts + customCostsTotal
+                const marginWithCustom = project.approvedBudget ? Number(project.approvedBudget) - totalWithCustom : null
+                return (
+                  <div className="grid grid-cols-3 gap-4 mb-4">
+                    {[
+                      { label: 'Orçamento Aprovado', value: formatCurrency(project.approvedBudget ? Number(project.approvedBudget) : null), color: '#3b82f6' },
+                      { label: 'Custos Totais', value: formatCurrency(totalWithCustom), color: '#f59e0b' },
+                      { label: 'Margem', value: formatCurrency(marginWithCustom), color: marginWithCustom !== null && marginWithCustom < 0 ? '#ef4444' : '#22c55e' },
+                    ].map(f => (
+                      <div key={f.label} className="text-center p-3 rounded-lg" style={{ backgroundColor: '#32343a' }}>
+                        <p className="text-xs mb-1" style={{ color: '#6b7280' }}>{f.label}</p>
+                        <p className="font-bold text-sm" style={{ color: f.color }}>{f.value}</p>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                )
+              })()}
+              {customFields.filter(f => f.fieldType === 'CURRENCY').length > 0 && (
+                <div className="mb-4 p-3 rounded-lg" style={{ backgroundColor: '#32343a', border: '1px solid #3d3f44' }}>
+                  <p className="text-xs font-semibold mb-2" style={{ color: '#9ca3af' }}>Campos de Valor por Coluna</p>
+                  {customFields.filter(f => f.fieldType === 'CURRENCY').map(field => {
+                    const total = tasks.reduce((s, t) => {
+                      const cfv = t.customFieldValues?.find(v => v.fieldId === field.id)
+                      return s + (cfv?.value ? parseFloat(cfv.value) || 0 : 0)
+                    }, 0)
+                    return (
+                      <div key={field.id} className="flex items-center justify-between py-1.5" style={{ borderBottom: '1px solid #3d3f44' }}>
+                        <div className="flex items-center gap-1.5">
+                          <Award size={10} style={{ color: '#ca8a04', opacity: 0.7 }} />
+                          <span className="text-xs" style={{ color: '#9ca3af' }}>{field.name}</span>
+                        </div>
+                        <span className="text-xs font-medium" style={{ color: '#22c55e' }}>{formatCurrency(total)}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
               <div className="mt-4 flex items-center justify-between">
                 <button onClick={() => setShowAddCost(true)} className="text-xs" style={{ color: '#3b82f6' }}>+ Adicionar custo</button>
               </div>
