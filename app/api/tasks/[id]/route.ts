@@ -6,16 +6,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const body = await req.json()
   const { assigneeIds, ...data } = body
 
-  const task = await prisma.task.update({
-    where: { id },
-    data: {
-      ...data,
-      dueDate: data.dueDate !== undefined ? (data.dueDate ? new Date(data.dueDate) : null) : undefined,
-      startDate: data.startDate !== undefined ? (data.startDate ? new Date(data.startDate) : null) : undefined,
-      completedAt: data.status === 'DONE' ? new Date() : data.status ? null : undefined,
-      estimatedHours: data.estimatedHours != null ? parseFloat(data.estimatedHours) : undefined,
-    },
-  })
+  const updateData: Record<string, unknown> = { ...data }
+  if (data.dueDate !== undefined) updateData.dueDate = data.dueDate ? new Date(data.dueDate) : null
+  if (data.startDate !== undefined) updateData.startDate = data.startDate ? new Date(data.startDate) : null
+  if (data.status === 'DONE') updateData.completedAt = new Date()
+  else if (data.status) updateData.completedAt = null
+
+  const task = await prisma.task.update({ where: { id }, data: updateData })
 
   if (assigneeIds !== undefined) {
     await prisma.taskAssignee.deleteMany({ where: { taskId: id } })

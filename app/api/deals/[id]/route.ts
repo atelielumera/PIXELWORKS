@@ -7,11 +7,10 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     where: { id },
     include: {
       client: true,
+      lead: true,
       solution: true,
-      lead: { select: { id: true, contactName: true, company: true } },
       responsible: { select: { id: true, name: true, email: true } },
       proposals: { orderBy: { createdAt: 'desc' } },
-      project: { select: { id: true, name: true, status: true } },
     },
   })
   if (!deal) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -26,8 +25,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     data: {
       ...body,
       value: body.value != null ? parseFloat(body.value) : undefined,
+      probability: body.probability != null ? parseInt(body.probability) : undefined,
       expectedCloseDate: body.expectedCloseDate ? new Date(body.expectedCloseDate) : undefined,
-      closedAt: (body.status === 'WON' || body.status === 'LOST') ? new Date() : undefined,
     },
   })
   return NextResponse.json({ data: deal })

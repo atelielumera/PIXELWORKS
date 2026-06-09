@@ -6,11 +6,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const body = await req.json()
   const team = await prisma.team.update({
     where: { id },
-    data: {
-      name: body.name,
-      description: body.description !== undefined ? body.description : undefined,
-      color: body.color !== undefined ? body.color : undefined,
-    },
+    data: { name: body.name, description: body.description ?? undefined, color: body.color ?? undefined },
+    include: { members: { include: { user: { select: { id: true, name: true, email: true, role: true, department: true } } } } },
   })
   return NextResponse.json({ data: team })
 }

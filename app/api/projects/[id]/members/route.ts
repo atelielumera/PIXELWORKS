@@ -17,8 +17,6 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const { searchParams } = new URL(req.url)
   const userId = searchParams.get('userId')
   if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })
-  await prisma.projectMember.delete({
-    where: { projectId_userId: { projectId: id, userId } },
-  })
-  return NextResponse.json({ message: 'Removed' })
+  await prisma.projectMember.delete({ where: { projectId_userId: { projectId: id, userId } } })
+  return NextResponse.json({ message: 'Deleted' })
 }

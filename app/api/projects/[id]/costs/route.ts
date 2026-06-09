@@ -1,15 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 
-export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  const costs = await prisma.projectCost.findMany({
-    where: { projectId: id },
-    orderBy: { createdAt: 'desc' },
-  })
-  return NextResponse.json({ data: costs })
-}
-
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const body = await req.json()
@@ -22,17 +13,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       actual: body.actual ? parseFloat(body.actual) : null,
       supplier: body.supplier || null,
       date: body.date ? new Date(body.date) : null,
-      notes: body.notes || null,
     },
   })
   return NextResponse.json({ data: cost }, { status: 201 })
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+  const { id: projectId } = await params
   const { searchParams } = new URL(req.url)
   const costId = searchParams.get('costId')
   if (!costId) return NextResponse.json({ error: 'costId required' }, { status: 400 })
-  await prisma.projectCost.delete({ where: { id: costId, projectId: id } })
+  await prisma.projectCost.delete({ where: { id: costId } })
   return NextResponse.json({ message: 'Deleted' })
 }

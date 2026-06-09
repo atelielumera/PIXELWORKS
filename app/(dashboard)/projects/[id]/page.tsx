@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { Header } from '@/components/layout/header'
-import ProjectDetailClient from './ProjectDetailClient'
+import { ProjectDetailClient } from './ProjectDetailClient'
 
 async function getProject(id: string) {
   return prisma.project.findUnique({
@@ -12,15 +12,11 @@ async function getProject(id: string) {
       members: { include: { user: { select: { id: true, name: true, avatar: true } } } },
       tasks: {
         where: { parentId: null },
-        orderBy: [{ section: 'asc' }, { createdAt: 'asc' }],
-        include: {
-          assignees: { include: { user: { select: { id: true, name: true } } } },
-          _count: { select: { subtasks: true } },
-        },
-        take: 300,
+        orderBy: [{ status: 'asc' }, { createdAt: 'asc' }],
+        include: { assignees: { include: { user: { select: { id: true, name: true } } } }, _count: { select: { subtasks: true } } },
+        take: 200,
       },
       costs: { orderBy: { createdAt: 'desc' } },
-      _count: { select: { tasks: true } },
     },
   })
 }
@@ -28,8 +24,8 @@ async function getProject(id: string) {
 async function getUsers() {
   return prisma.user.findMany({
     where: { isActive: true },
-    select: { id: true, name: true, email: true, role: true },
     orderBy: { name: 'asc' },
+    select: { id: true, name: true, email: true, role: true, department: true, avatar: true },
   })
 }
 
