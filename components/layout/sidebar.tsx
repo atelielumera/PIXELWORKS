@@ -89,9 +89,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     <aside className="flex flex-col w-60 bg-gray-950 h-screen overflow-y-auto sidebar-scroll shrink-0 border-r border-gray-800">
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 h-16 border-b border-gray-800 shrink-0">
-        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-xs text-white shrink-0">
-          PS
-        </div>
+        <img src="/logo-workos.png" alt="PixelSAV WorkOS" className="w-9 h-9 object-contain shrink-0" />
         <div className="min-w-0">
           <div className="font-bold text-white text-sm leading-tight">PixelSAV</div>
           <div className="text-xs text-gray-500">WorkOS</div>
