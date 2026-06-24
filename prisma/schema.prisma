@@ -42,6 +42,7 @@ model User {
   createdProjects    Project[]          @relation("ProjectCreator")
   taskAssignments    TaskAssignee[]
   createdTasks       Task[]             @relation("TaskCreator")
+  taskComments       TaskComment[]
   timeEntries        TimeEntry[]
   approvalRequests   Approval[]         @relation("ApprovalCreator")
   approvalAssignments Approval[]        @relation("ApprovalAssignee")
@@ -425,7 +426,6 @@ model Project {
   portfolioItems PortfolioProject[]
   events         Event[]
   goalMetrics    GoalMetric[]
-  customFields   CustomField[]
 }
 
 model ProjectMember {
@@ -518,48 +518,23 @@ model Task {
   estimatedHours Decimal?     @db.Decimal(8, 2)
   actualHours    Decimal?     @db.Decimal(8, 2)
   tags           String[]
-  prestador      String?
-  fornecedor     String?
-  eixoTematico   String?
   createdById    String?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  project           Project?              @relation(fields: [projectId], references: [id])
-  parent            Task?                 @relation("TaskSubtasks", fields: [parentId], references: [id])
-  subtasks          Task[]                @relation("TaskSubtasks")
-  assignees         TaskAssignee[]
-  timeEntries       TimeEntry[]
-  approvals         Approval[]
-  files             FileAttachment[]      @relation("TaskFiles")
-  createdBy         User?                 @relation("TaskCreator", fields: [createdById], references: [id])
-  dependencies      TaskDependency[]      @relation("TaskDeps")
-  dependents        TaskDependency[]      @relation("TaskDependents")
-  events            Event[]
-  goalMetrics       GoalMetric[]
-  customFieldValues TaskCustomFieldValue[]
-}
-
-model CustomField {
-  id        String                 @id @default(cuid())
-  projectId String
-  name      String
-  fieldType String                 @default("TEXT")
-  sortOrder Int                    @default(0)
-  createdAt DateTime               @default(now())
-  project   Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  values    TaskCustomFieldValue[]
-}
-
-model TaskCustomFieldValue {
-  id      String      @id @default(cuid())
-  taskId  String
-  fieldId String
-  value   String?
-  task    Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  field   CustomField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
-
-  @@unique([taskId, fieldId])
+  project      Project?         @relation(fields: [projectId], references: [id])
+  parent       Task?            @relation("TaskSubtasks", fields: [parentId], references: [id])
+  subtasks     Task[]           @relation("TaskSubtasks")
+  assignees    TaskAssignee[]
+  comments     TaskComment[]
+  timeEntries  TimeEntry[]
+  approvals    Approval[]
+  files        FileAttachment[] @relation("TaskFiles")
+  createdBy    User?            @relation("TaskCreator", fields: [createdById], references: [id])
+  dependencies TaskDependency[] @relation("TaskDeps")
+  dependents   TaskDependency[] @relation("TaskDependents")
+  events       Event[]
+  goalMetrics  GoalMetric[]
 }
 
 model TaskAssignee {
@@ -582,6 +557,17 @@ model TaskDependency {
   dependsOn   Task   @relation("TaskDependents", fields: [dependsOnId], references: [id], onDelete: Cascade)
 
   @@unique([taskId, dependsOnId])
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ============================================================

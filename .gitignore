@@ -9,4 +9,3 @@ uploads/
 *.log
 .DS_Store
 prisma/migrations/
-tsconfig.tsbuildinfo

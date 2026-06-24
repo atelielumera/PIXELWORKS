@@ -43,9 +43,6 @@ export async function POST(req: Request) {
       startDate: body.startDate ? new Date(body.startDate) : null,
       estimatedHours: body.estimatedHours ? parseFloat(body.estimatedHours) : null,
       tags: body.tags || [],
-      prestador: body.prestador || null,
-      fornecedor: body.fornecedor || null,
-      eixoTematico: body.eixoTematico || null,
       createdById: (session?.user as any)?.id || null,
     },
   })

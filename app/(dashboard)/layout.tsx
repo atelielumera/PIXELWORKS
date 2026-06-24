@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
-import { AppShell } from '@/components/layout/app-shell'
+import { Sidebar } from '@/components/layout/sidebar'
 import Providers from './providers'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -10,7 +10,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <Providers>
-      <AppShell>{children}</AppShell>
+      <div className="flex h-screen overflow-hidden">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto">{children}</main>
+      </div>
     </Providers>
   )
 }

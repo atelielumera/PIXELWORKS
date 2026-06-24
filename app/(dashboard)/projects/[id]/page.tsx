@@ -9,23 +9,14 @@ async function getProject(id: string) {
     include: {
       client: true,
       solution: true,
-      deal: true,
-      contract: true,
       members: { include: { user: { select: { id: true, name: true, avatar: true } } } },
-      customFields: { orderBy: { sortOrder: 'asc' } },
       tasks: {
         where: { parentId: null },
         orderBy: [{ status: 'asc' }, { createdAt: 'asc' }],
-        include: {
-          assignees: { include: { user: { select: { id: true, name: true } } } },
-          _count: { select: { subtasks: true } },
-          customFieldValues: true,
-        },
+        include: { assignees: { include: { user: { select: { id: true, name: true } } } }, _count: { select: { subtasks: true } } },
         take: 200,
       },
       costs: { orderBy: { createdAt: 'desc' } },
-      approvals: { orderBy: { createdAt: 'desc' }, take: 10 },
-      _count: { select: { tasks: true, timeEntries: true, files: true } },
     },
   })
 }
@@ -38,15 +29,15 @@ async function getUsers() {
   })
 }
 
-export default async function ProjectDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ task?: string }> }) {
-  const [{ id }, { task: highlightTaskId }] = await Promise.all([params, searchParams])
+export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const [project, users] = await Promise.all([getProject(id), getUsers()])
   if (!project) notFound()
 
   return (
     <div>
       <Header title={project.name} subtitle={project.client?.name ?? 'Projeto'} />
-      <ProjectDetailClient project={project as any} users={users} highlightTaskId={highlightTaskId} />
+      <ProjectDetailClient project={project as any} users={users} />
     </div>
   )
 }
