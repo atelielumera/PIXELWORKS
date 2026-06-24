@@ -5,12 +5,13 @@ import Link from 'next/link'
 import { ArrowLeft, Plus, Trash2, Edit2, Check, X, UserPlus } from 'lucide-react'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { PROJECT_STATUSES, TASK_STATUSES } from '@/lib/constants'
+import { TaskDetailPanel } from '@/components/tasks/task-detail-panel'
 
 type User = { id: string; name: string; email: string; role: string; department: string | null; avatar: string | null }
 type TaskAssignee = { userId: string; user: { id: string; name: string } }
 type Task = {
   id: string; title: string; status: string; priority: string; section: string | null
-  dueDate: string | null; completedAt: string | null
+  description: string | null; dueDate: string | null; completedAt: string | null
   assignees: TaskAssignee[]; _count: { subtasks: number }
 }
 type ProjectMember = { userId: string; role: string; user: { id: string; name: string; avatar: string | null } }
@@ -37,6 +38,7 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
 
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
 
   const [showEditProject, setShowEditProject] = useState(false)
   const [showAddCost, setShowAddCost] = useState(false)
@@ -237,10 +239,10 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
                             <button onClick={() => setEditingTaskId(null)} className="text-gray-400"><X size={14} /></button>
                           </div>
                         ) : (
-                          <>
-                            <p className={`text-sm ${task.status === 'DONE' ? 'line-through text-gray-400' : 'text-gray-900'}`}>{task.title}</p>
+                          <div className="cursor-pointer" onClick={() => setSelectedTask(task)}>
+                            <p className={`text-sm ${task.status === 'DONE' ? 'line-through text-gray-400' : 'text-gray-900'} hover:text-blue-600 transition-colors`}>{task.title}</p>
                             <p className="text-xs text-gray-500">{task.dueDate ? formatDate(task.dueDate) : 'Sem prazo'}{task._count.subtasks > 0 && ` • ${task._count.subtasks} subtarefas`}</p>
-                          </>
+                          </div>
                         )}
                       </div>
                       {!isEditing && (
@@ -349,6 +351,19 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
           </div>
         </div>
       </div>
+
+      {/* Task Detail Panel */}
+      {selectedTask && (
+        <TaskDetailPanel
+          task={selectedTask}
+          projectId={project.id}
+          users={users.map(u => ({ id: u.id, name: u.name, avatar: u.avatar }))}
+          onClose={() => setSelectedTask(null)}
+          onTaskUpdate={(taskId, data) => {
+            setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...data } : t))
+          }}
+        />
+      )}
 
       {/* Edit Project Modal */}
       {showEditProject && (

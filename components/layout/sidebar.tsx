@@ -55,7 +55,7 @@ const nav = [
   { name: 'Importar Asana', href: '/import/asana', icon: Download },
 ]
 
-export function Sidebar() {
+export function Sidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname()
   const [expanded, setExpanded] = useState<string[]>(['CRM', 'Projetos', 'Financeiro'])
 
@@ -66,9 +66,7 @@ export function Sidebar() {
     <aside className="flex flex-col w-60 bg-gray-950 h-screen overflow-y-auto sidebar-scroll shrink-0 border-r border-gray-800">
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 h-16 border-b border-gray-800 shrink-0">
-        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-xs text-white shrink-0">
-          PS
-        </div>
+        <img src="/logo-workos.webp" alt="PixelSAV WorkOS" className="w-9 h-9 object-contain shrink-0" />
         <div className="min-w-0">
           <div className="font-bold text-white text-sm leading-tight">PixelSAV</div>
           <div className="text-xs text-gray-500">WorkOS</div>
@@ -100,7 +98,7 @@ export function Sidebar() {
                   <div className="ml-5 mt-0.5 space-y-0.5 pl-3 border-l border-gray-800">
                     {item.children?.map(child => (
                       <Link
-                        key={child.href} href={child.href}
+                        key={child.href} href={child.href} onClick={onClose}
                         className={cn(
                           'block px-2 py-1.5 rounded-lg text-xs transition-colors',
                           pathname === child.href
@@ -118,7 +116,7 @@ export function Sidebar() {
           }
           return (
             <Link
-              key={item.href} href={item.href!}
+              key={item.href} href={item.href!} onClick={onClose}
               className={cn(
                 'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
                 pathname === item.href
