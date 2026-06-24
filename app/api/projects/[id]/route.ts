@@ -19,14 +19,26 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const body = await req.json()
-  const project = await prisma.project.update({
-    where: { id },
-    data: {
-      ...body,
-      approvedBudget: body.approvedBudget != null ? parseFloat(body.approvedBudget) : undefined,
-      eventDate: body.eventDate ? new Date(body.eventDate) : undefined,
-    },
-  })
+
+  const dateFields = [
+    'eventDate', 'setupStartDate', 'setupEndDate',
+    'operationStartDate', 'operationEndDate',
+    'teardownStartDate', 'teardownEndDate',
+  ]
+  const data: Record<string, unknown> = {}
+
+  for (const [key, value] of Object.entries(body)) {
+    if (dateFields.includes(key)) {
+      data[key] = value ? new Date(value as string) : null
+    } else if (key === 'approvedBudget') {
+      data[key] = value != null && value !== '' ? parseFloat(value as string) : null
+    } else {
+      data[key] = value
+    }
+  }
+
+  const project = await prisma.project.update({ where: { id }, data })
+
   const overdueTasks = await prisma.task.count({
     where: { projectId: id, status: { notIn: ['DONE', 'CANCELLED'] }, dueDate: { lt: new Date() } },
   })
