@@ -22,7 +22,7 @@ type Project = {
   setupStartDate: string | null; setupEndDate: string | null
   operationStartDate: string | null; operationEndDate: string | null
   teardownStartDate: string | null; teardownEndDate: string | null
-  notes: string | null
+  scope: string | null
   client: { id: string; name: string } | null
   solution: { id: string; name: string; color: string | null } | null
   tasks: Task[]; members: ProjectMember[]; costs: Cost[]
@@ -46,8 +46,8 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
   const [showAddTask, setShowAddTask] = useState(false)
 
   const [editForm, setEditForm] = useState({
-    name: project.name, status: project.status, notes: project.notes ?? '',
-    approvedBudget: project.approvedBudget ?? '',
+    name: project.name, status: project.status, notes: project.scope ?? '',
+    approvedBudget: project.approvedBudget ? String(project.approvedBudget).replace('.', ',') : '',
     eventDate: project.eventDate ? project.eventDate.slice(0, 10) : '',
     setupStartDate: project.setupStartDate ? project.setupStartDate.slice(0, 10) : '',
     setupEndDate: project.setupEndDate ? project.setupEndDate.slice(0, 10) : '',

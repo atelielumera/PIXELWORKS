@@ -28,7 +28,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     ]
     const data: Record<string, unknown> = {}
 
+    const allowedFields = new Set([
+      'name', 'status', 'scope', 'notes', 'approvedBudget',
+      'eventDate', 'setupStartDate', 'setupEndDate',
+      'operationStartDate', 'operationEndDate',
+      'teardownStartDate', 'teardownEndDate',
+      'eventLocation', 'code', 'solutionId', 'clientId',
+    ])
+
     for (const [key, value] of Object.entries(body)) {
+      if (!allowedFields.has(key)) continue
       if (dateFields.includes(key)) {
         data[key] = value ? new Date(value as string) : null
       } else if (key === 'approvedBudget') {
@@ -40,6 +49,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           const num = parseFloat(normalized)
           data[key] = isNaN(num) ? null : num
         }
+      } else if (key === 'notes') {
+        // frontend uses 'notes', schema uses 'scope'
+        data['scope'] = value
       } else {
         data[key] = value
       }
