@@ -6,17 +6,23 @@ import Link from 'next/link'
 import { Plus } from 'lucide-react'
 
 async function getLeadsByStage() {
-  const leads = await prisma.lead.findMany({
-    where: { status: { notIn: ['WON', 'LOST', 'NO_FIT'] } },
-    include: { solution: true },
-    orderBy: { createdAt: 'desc' },
-  })
-  const byStage: Record<string, typeof leads> = {}
-  for (const stage of PIPELINE_STAGES) byStage[stage.key] = []
-  for (const lead of leads) {
-    if (byStage[lead.status]) byStage[lead.status].push(lead)
+  try {
+    const leads = await prisma.lead.findMany({
+      where: { status: { notIn: ['WON', 'LOST', 'NO_FIT'] } },
+      include: { solution: true },
+      orderBy: { createdAt: 'desc' },
+    })
+    const byStage: Record<string, typeof leads> = {}
+    for (const stage of PIPELINE_STAGES) byStage[stage.key] = []
+    for (const lead of leads) {
+      if (byStage[lead.status]) byStage[lead.status].push(lead)
+    }
+    return byStage
+  } catch {
+    const byStage: Record<string, never[]> = {}
+    for (const stage of PIPELINE_STAGES) byStage[stage.key] = []
+    return byStage
   }
-  return byStage
 }
 
 export default async function PipelinePage() {

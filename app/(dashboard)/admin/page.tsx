@@ -4,16 +4,18 @@ import Link from 'next/link'
 import { Users, Package, Layers, Zap, FileText, Activity, Database, Webhook } from 'lucide-react'
 
 async function getAdminStats() {
-  const [users, teams, solutions, templates, automations, imports, auditLogs] = await Promise.all([
-    prisma.user.count(),
-    prisma.team.count(),
-    prisma.solution.count(),
-    prisma.projectTemplate.count(),
-    prisma.automation.count(),
-    prisma.import.count(),
-    prisma.auditLog.count(),
-  ])
-  return { users, teams, solutions, templates, automations, imports, auditLogs }
+  try {
+    const [users, teams, solutions, templates, automations, imports, auditLogs] = await Promise.all([
+      prisma.user.count(),
+      prisma.team.count(),
+      prisma.solution.count(),
+      prisma.projectTemplate.count(),
+      prisma.automation.count(),
+      prisma.import.count(),
+      prisma.auditLog.count(),
+    ])
+    return { users, teams, solutions, templates, automations, imports, auditLogs }
+  } catch { return { users: 0, teams: 0, solutions: 0, templates: 0, automations: 0, imports: 0, auditLogs: 0 } }
 }
 
 export default async function AdminPage() {
