@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { Plus } from 'lucide-react'
 
 async function getTasks(status?: string, projectId?: string) {
-  return prisma.task.findMany({
+  try { return await prisma.task.findMany({
     where: {
       parentId: null,
       ...(status ? { status: status as any } : {}),
@@ -19,7 +19,7 @@ async function getTasks(status?: string, projectId?: string) {
       _count: { select: { subtasks: true } },
     },
     take: 200,
-  })
+  }) } catch { return [] }
 }
 
 const PRIORITY_STYLE: Record<string, string> = {

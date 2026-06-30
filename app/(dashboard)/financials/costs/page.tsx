@@ -4,13 +4,17 @@ import { formatCurrency } from '@/lib/utils'
 import Link from 'next/link'
 
 async function getCosts() {
-  return prisma.projectCost.findMany({
-    orderBy: { createdAt: 'desc' },
-    include: {
-      project: { select: { id: true, name: true, solution: { select: { name: true, color: true } } } },
-    },
-    take: 200,
-  })
+  try {
+    return await prisma.projectCost.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        project: { select: { id: true, name: true, solution: { select: { name: true, color: true } } } },
+      },
+      take: 200,
+    })
+  } catch {
+    return []
+  }
 }
 
 export default async function CostsPage() {

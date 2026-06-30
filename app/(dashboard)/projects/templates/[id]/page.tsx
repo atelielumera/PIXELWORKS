@@ -5,13 +5,17 @@ import Link from 'next/link'
 import { ArrowLeft, CheckSquare, Plus } from 'lucide-react'
 
 async function getTemplate(id: string) {
-  return prisma.projectTemplate.findUnique({
-    where: { id },
-    include: {
-      solution: true,
-      tasks: { orderBy: { sortOrder: 'asc' } },
-    },
-  })
+  try {
+    return await prisma.projectTemplate.findUnique({
+      where: { id },
+      include: {
+        solution: true,
+        tasks: { orderBy: { sortOrder: 'asc' } },
+      },
+    })
+  } catch {
+    return null
+  }
 }
 
 export default async function TemplateDetailPage({ params }: { params: Promise<{ id: string }> }) {

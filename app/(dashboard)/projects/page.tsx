@@ -6,19 +6,21 @@ import Link from 'next/link'
 import { Plus, AlertTriangle } from 'lucide-react'
 
 async function getProjects(status?: string, health?: string) {
-  return prisma.project.findMany({
-    where: {
-      ...(status ? { status: status as any } : {}),
-      ...(health ? { health: health as any } : {}),
-    },
-    orderBy: { createdAt: 'desc' },
-    include: {
-      client: { select: { name: true } },
-      solution: true,
-      _count: { select: { tasks: true, members: true } },
-    },
-    take: 100,
-  })
+  try {
+    return await prisma.project.findMany({
+      where: {
+        ...(status ? { status: status as any } : {}),
+        ...(health ? { health: health as any } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        client: { select: { name: true } },
+        solution: true,
+        _count: { select: { tasks: true, members: true } },
+      },
+      take: 100,
+    })
+  } catch { return [] }
 }
 
 const HEALTH_STYLE: Record<string, string> = {

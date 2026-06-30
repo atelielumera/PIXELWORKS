@@ -6,16 +6,20 @@ import Link from 'next/link'
 import { Plus, Filter, Search } from 'lucide-react'
 
 async function getLeads(status?: string) {
-  return prisma.lead.findMany({
-    where: status ? { status: status as any } : {},
-    orderBy: { createdAt: 'desc' },
-    include: {
-      solution: true,
-      responsible: { select: { id: true, name: true } },
-      client: { select: { id: true, name: true } },
-    },
-    take: 100,
-  })
+  try {
+    return await prisma.lead.findMany({
+      where: status ? { status: status as any } : {},
+      orderBy: { createdAt: 'desc' },
+      include: {
+        solution: true,
+        responsible: { select: { id: true, name: true } },
+        client: { select: { id: true, name: true } },
+      },
+      take: 100,
+    })
+  } catch {
+    return []
+  }
 }
 
 const STATUS_STYLES: Record<string, string> = {

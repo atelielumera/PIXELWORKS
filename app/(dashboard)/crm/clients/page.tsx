@@ -4,12 +4,16 @@ import Link from 'next/link'
 import { Plus } from 'lucide-react'
 
 async function getClients() {
-  return prisma.client.findMany({
-    orderBy: { name: 'asc' },
-    include: {
-      _count: { select: { projects: true, deals: true, leads: true } },
-    },
-  })
+  try {
+    return await prisma.client.findMany({
+      orderBy: { name: 'asc' },
+      include: {
+        _count: { select: { projects: true, deals: true, leads: true } },
+      },
+    })
+  } catch {
+    return []
+  }
 }
 
 export default async function ClientsPage() {

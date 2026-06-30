@@ -16,14 +16,18 @@ const STATUS_STYLE: Record<string, string> = {
 }
 
 async function getBudgets() {
-  return prisma.proposal.findMany({
-    orderBy: { createdAt: 'desc' },
-    include: {
-      client: { select: { id: true, name: true } },
-      solution: { select: { name: true, color: true } },
-    },
-    take: 100,
-  })
+  try {
+    return await prisma.proposal.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        client: { select: { id: true, name: true } },
+        solution: { select: { name: true, color: true } },
+      },
+      take: 100,
+    })
+  } catch {
+    return []
+  }
 }
 
 export default async function BudgetsPage() {

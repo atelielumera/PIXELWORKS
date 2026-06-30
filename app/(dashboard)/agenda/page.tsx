@@ -21,24 +21,32 @@ const EVENT_COLORS: Record<string, string> = {
 }
 
 async function getEvents() {
-  return prisma.event.findMany({
-    where: { startDate: { gte: new Date() } },
-    orderBy: { startDate: 'asc' },
-    include: {
-      project: { select: { id: true, name: true, solution: { select: { name: true, color: true } } } },
-      task: { select: { id: true, title: true } },
-    },
-    take: 100,
-  })
+  try {
+    return await prisma.event.findMany({
+      where: { startDate: { gte: new Date() } },
+      orderBy: { startDate: 'asc' },
+      include: {
+        project: { select: { id: true, name: true, solution: { select: { name: true, color: true } } } },
+        task: { select: { id: true, title: true } },
+      },
+      take: 100,
+    })
+  } catch {
+    return []
+  }
 }
 
 async function getPastEvents() {
-  return prisma.event.findMany({
-    where: { startDate: { lt: new Date() } },
-    orderBy: { startDate: 'desc' },
-    include: { project: { select: { id: true, name: true } } },
-    take: 30,
-  })
+  try {
+    return await prisma.event.findMany({
+      where: { startDate: { lt: new Date() } },
+      orderBy: { startDate: 'desc' },
+      include: { project: { select: { id: true, name: true } } },
+      take: 30,
+    })
+  } catch {
+    return []
+  }
 }
 
 export default async function AgendaPage() {

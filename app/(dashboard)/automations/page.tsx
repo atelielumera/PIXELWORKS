@@ -4,10 +4,14 @@ import { formatDateTime } from '@/lib/utils'
 import { Zap, CheckCircle, XCircle } from 'lucide-react'
 
 async function getAutomations() {
-  return prisma.automation.findMany({
-    include: { actions: true, _count: { select: { logs: true } } },
-    orderBy: { createdAt: 'desc' },
-  })
+  try {
+    return await prisma.automation.findMany({
+      include: { actions: true, _count: { select: { logs: true } } },
+      orderBy: { createdAt: 'desc' },
+    })
+  } catch {
+    return []
+  }
 }
 
 const TRIGGER_LABELS: Record<string, string> = {
