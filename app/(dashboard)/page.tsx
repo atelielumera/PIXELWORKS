@@ -10,55 +10,67 @@ import {
 } from 'lucide-react'
 
 async function getDashboardData() {
-  const now = new Date()
-  const startOfDay = new Date(now.setHours(0, 0, 0, 0))
-  const endOfDay = new Date(now.setHours(23, 59, 59, 999))
+  try {
+    const [leadsNew, leadsWaiting, proposalsOpen, dealsWon, dealsLost,
+      projectsActive, projectsAtRisk, tasksOverdue, approvalsPending,
+      upcomingEvents, revenueDeals] = await Promise.all([
+      prisma.lead.count({ where: { status: 'NEW' } }),
+      prisma.lead.count({ where: { status: 'WAITING_RESPONSE' } }),
+      prisma.proposal.count({ where: { status: { in: ['DRAFT', 'SENT', 'VIEWED'] } } }),
+      prisma.deal.count({ where: { status: 'WON' } }),
+      prisma.deal.count({ where: { status: 'LOST' } }),
+      prisma.project.count({ where: { status: { in: ['PLANNING', 'IN_PROGRESS'] } } }),
+      prisma.project.count({ where: { health: 'AT_RISK' } }),
+      prisma.task.count({ where: { status: { notIn: ['DONE', 'CANCELLED'] }, dueDate: { lt: new Date() } } }),
+      prisma.approval.count({ where: { status: 'PENDING' } }),
+      prisma.event.count({ where: { startDate: { gte: new Date(), lte: new Date(Date.now() + 7 * 86400000) } } }),
+      prisma.deal.aggregate({ where: { status: 'WON' }, _sum: { value: true } }),
+    ])
 
-  const [leadsNew, leadsWaiting, proposalsOpen, dealsWon, dealsLost,
-    projectsActive, projectsAtRisk, tasksOverdue, approvalsPending,
-    upcomingEvents, revenueDeals] = await Promise.all([
-    prisma.lead.count({ where: { status: 'NEW' } }),
-    prisma.lead.count({ where: { status: 'WAITING_RESPONSE' } }),
-    prisma.proposal.count({ where: { status: { in: ['DRAFT', 'SENT', 'VIEWED'] } } }),
-    prisma.deal.count({ where: { status: 'WON' } }),
-    prisma.deal.count({ where: { status: 'LOST' } }),
-    prisma.project.count({ where: { status: { in: ['PLANNING', 'IN_PROGRESS'] } } }),
-    prisma.project.count({ where: { health: 'AT_RISK' } }),
-    prisma.task.count({ where: { status: { notIn: ['DONE', 'CANCELLED'] }, dueDate: { lt: new Date() } } }),
-    prisma.approval.count({ where: { status: 'PENDING' } }),
-    prisma.event.count({ where: { startDate: { gte: new Date(), lte: new Date(Date.now() + 7 * 86400000) } } }),
-    prisma.deal.aggregate({ where: { status: 'WON' }, _sum: { value: true } }),
-  ])
+    const openDealsValue = await prisma.deal.aggregate({
+      where: { status: 'OPEN' },
+      _sum: { value: true },
+    })
 
-  const openDealsValue = await prisma.deal.aggregate({
-    where: { status: 'OPEN' },
-    _sum: { value: true },
-  })
-
-  return {
-    leadsNew, leadsWaiting, proposalsOpen, dealsWon, dealsLost,
-    projectsActive, projectsAtRisk, tasksOverdue, approvalsPending,
-    upcomingEvents,
-    revenueClosed: Number(revenueDeals._sum.value ?? 0),
-    pipelineValue: Number(openDealsValue._sum.value ?? 0),
+    return {
+      leadsNew, leadsWaiting, proposalsOpen, dealsWon, dealsLost,
+      projectsActive, projectsAtRisk, tasksOverdue, approvalsPending,
+      upcomingEvents,
+      revenueClosed: Number(revenueDeals._sum.value ?? 0),
+      pipelineValue: Number(openDealsValue._sum.value ?? 0),
+    }
+  } catch {
+    return {
+      leadsNew: 0, leadsWaiting: 0, proposalsOpen: 0, dealsWon: 0, dealsLost: 0,
+      projectsActive: 0, projectsAtRisk: 0, tasksOverdue: 0, approvalsPending: 0,
+      upcomingEvents: 0, revenueClosed: 0, pipelineValue: 0,
+    }
   }
 }
 
 async function getRecentLeads() {
-  return prisma.lead.findMany({
-    take: 5,
-    orderBy: { createdAt: 'desc' },
-    include: { solution: true, responsible: { select: { name: true } } },
-  })
+  try {
+    return await prisma.lead.findMany({
+      take: 5,
+      orderBy: { createdAt: 'desc' },
+      include: { solution: true, responsible: { select: { name: true } } },
+    })
+  } catch {
+    return []
+  }
 }
 
 async function getUpcomingEvents() {
-  return prisma.event.findMany({
-    take: 5,
-    where: { startDate: { gte: new Date() } },
-    orderBy: { startDate: 'asc' },
-    include: { project: { select: { name: true } } },
-  })
+  try {
+    return await prisma.event.findMany({
+      take: 5,
+      where: { startDate: { gte: new Date() } },
+      orderBy: { startDate: 'asc' },
+      include: { project: { select: { name: true } } },
+    })
+  } catch {
+    return []
+  }
 }
 
 function StatCard({ title, value, sub, icon: Icon, color, href }: {
