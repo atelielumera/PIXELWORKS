@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { Header } from '@/components/layout/header'
@@ -44,9 +46,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   if (!project) notFound()
 
   return (
-    <div>
+    <div className="flex flex-col h-full overflow-hidden">
       <Header title={project.name} subtitle={project.client?.name ?? 'Projeto'} />
-      <ProjectDetailClient project={project as any} users={users} />
+      <div className="flex-1 overflow-hidden">
+        <ProjectDetailClient project={project as any} users={users} />
+      </div>
     </div>
   )
 }
