@@ -17,38 +17,50 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  const body = await req.json()
+  try {
+    const { id } = await params
+    const body = await req.json()
 
-  const dateFields = [
-    'eventDate', 'setupStartDate', 'setupEndDate',
-    'operationStartDate', 'operationEndDate',
-    'teardownStartDate', 'teardownEndDate',
-  ]
-  const data: Record<string, unknown> = {}
+    const dateFields = [
+      'eventDate', 'setupStartDate', 'setupEndDate',
+      'operationStartDate', 'operationEndDate',
+      'teardownStartDate', 'teardownEndDate',
+    ]
+    const data: Record<string, unknown> = {}
 
-  for (const [key, value] of Object.entries(body)) {
-    if (dateFields.includes(key)) {
-      data[key] = value ? new Date(value as string) : null
-    } else if (key === 'approvedBudget') {
-      data[key] = value != null && value !== '' ? parseFloat(value as string) : null
-    } else {
-      data[key] = value
+    for (const [key, value] of Object.entries(body)) {
+      if (dateFields.includes(key)) {
+        data[key] = value ? new Date(value as string) : null
+      } else if (key === 'approvedBudget') {
+        if (value == null || value === '') {
+          data[key] = null
+        } else {
+          // Accept Brazilian format: "50.000,64" → 50000.64
+          const normalized = String(value).replace(/\./g, '').replace(',', '.')
+          const num = parseFloat(normalized)
+          data[key] = isNaN(num) ? null : num
+        }
+      } else {
+        data[key] = value
+      }
     }
-  }
 
-  const project = await prisma.project.update({ where: { id }, data })
+    const project = await prisma.project.update({ where: { id }, data })
 
-  const overdueTasks = await prisma.task.count({
-    where: { projectId: id, status: { notIn: ['DONE', 'CANCELLED'] }, dueDate: { lt: new Date() } },
-  })
-  const totalTasks = await prisma.task.count({ where: { projectId: id } })
-  let health: 'GOOD' | 'AT_RISK' | 'CRITICAL' = 'GOOD'
-  if (totalTasks > 0) {
-    const ratio = overdueTasks / totalTasks
-    if (ratio > 0.5) health = 'CRITICAL'
-    else if (ratio > 0.2) health = 'AT_RISK'
+    const overdueTasks = await prisma.task.count({
+      where: { projectId: id, status: { notIn: ['DONE', 'CANCELLED'] }, dueDate: { lt: new Date() } },
+    })
+    const totalTasks = await prisma.task.count({ where: { projectId: id } })
+    let health: 'GOOD' | 'AT_RISK' | 'CRITICAL' = 'GOOD'
+    if (totalTasks > 0) {
+      const ratio = overdueTasks / totalTasks
+      if (ratio > 0.5) health = 'CRITICAL'
+      else if (ratio > 0.2) health = 'AT_RISK'
+    }
+    await prisma.project.update({ where: { id }, data: { health } })
+    return NextResponse.json({ data: project })
+  } catch (err: any) {
+    console.error('PATCH project error:', err)
+    return NextResponse.json({ error: err?.message ?? 'Erro ao salvar projeto' }, { status: 500 })
   }
-  await prisma.project.update({ where: { id }, data: { health } })
-  return NextResponse.json({ data: project })
 }
