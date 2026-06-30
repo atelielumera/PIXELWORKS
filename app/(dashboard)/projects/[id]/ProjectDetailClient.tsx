@@ -5,13 +5,14 @@ import Link from 'next/link'
 import { ArrowLeft, Plus, Trash2, Edit2, Check, X, UserPlus, ChevronDown, ChevronRight, Award, Calendar, DollarSign, Users, LayoutGrid, List, BarChart3, Clock, AlertCircle, CheckCircle2, Type, Hash } from 'lucide-react'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { PROJECT_STATUSES, TASK_STATUSES } from '@/lib/constants'
+import { TaskDetailPanel } from '@/components/tasks/task-detail-panel'
 
 type User = { id: string; name: string; email: string; role: string; department: string | null; avatar: string | null }
 type TaskAssignee = { userId: string; user: { id: string; name: string } }
 type CustomField = { id: string; name: string; fieldType: string; sortOrder: number }
 type Task = {
   id: string; title: string; status: string; priority: string; section: string | null
-  dueDate: string | null; completedAt: string | null
+  dueDate: string | null; completedAt: string | null; description?: string | null
   prestador: string | null; fornecedor: string | null; eixoTematico: string | null
   assignees: TaskAssignee[]; _count: { subtasks: number }
   customFieldValues: { fieldId: string; value: string | null }[]
@@ -257,6 +258,7 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
 
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [editTaskForm, setEditTaskForm] = useState({ title: '', status: '', priority: '', section: '', dueDate: '', prestador: '', fornecedor: '', eixoTematico: '' })
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
 
   const [showEditProject, setShowEditProject] = useState(false)
   const [showAddCost, setShowAddCost] = useState(false)
@@ -665,10 +667,10 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
                             </button>
 
                             {/* Nome */}
-                            <span className="text-sm truncate pr-2" style={{ color: isDone ? '#4b5563' : '#e5e7eb', textDecoration: isDone ? 'line-through' : 'none' }}>
+                            <button onClick={() => setSelectedTask(task)} className="text-sm truncate pr-2 text-left hover:underline" style={{ color: isDone ? '#4b5563' : '#e5e7eb', textDecoration: isDone ? 'line-through' : 'none', background: 'none', border: 'none', cursor: 'pointer' }}>
                               {task.title}
                               {task._count.subtasks > 0 && <span className="ml-1.5 text-xs" style={{ color: '#4b5563' }}>{task._count.subtasks} sub</span>}
-                            </span>
+                            </button>
 
                             {/* Responsável */}
                             <AssigneeCell
@@ -1075,6 +1077,19 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
             </div>
           </div>
         </div>
+      )}
+
+      {selectedTask && (
+        <TaskDetailPanel
+          task={selectedTask}
+          projectId={project.id}
+          users={users}
+          onClose={() => setSelectedTask(null)}
+          onTaskUpdate={(taskId, data) => {
+            setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...data } as Task : t))
+            setSelectedTask(prev => prev?.id === taskId ? { ...prev, ...data } as Task : prev)
+          }}
+        />
       )}
     </div>
   )
