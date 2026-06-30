@@ -4,10 +4,14 @@ import Link from 'next/link'
 import { Plus } from 'lucide-react'
 
 async function getPortfolios() {
-  return prisma.portfolio.findMany({
-    include: { projects: { include: { project: { select: { id: true, name: true, status: true, solution: { select: { name: true, color: true } } } } } }, _count: { select: { projects: true } } },
-    orderBy: { createdAt: 'desc' },
-  })
+  try {
+    return await prisma.portfolio.findMany({
+      include: { projects: { include: { project: { select: { id: true, name: true, status: true, solution: { select: { name: true, color: true } } } } } }, _count: { select: { projects: true } } },
+      orderBy: { createdAt: 'desc' },
+    })
+  } catch {
+    return []
+  }
 }
 
 export default async function PortfoliosPage() {

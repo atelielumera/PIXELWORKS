@@ -4,10 +4,14 @@ import Link from 'next/link'
 import { Plus } from 'lucide-react'
 
 async function getTemplates() {
-  return prisma.projectTemplate.findMany({
-    include: { solution: true, _count: { select: { tasks: true } } },
-    orderBy: { name: 'asc' },
-  })
+  try {
+    return await prisma.projectTemplate.findMany({
+      include: { solution: true, _count: { select: { tasks: true } } },
+      orderBy: { name: 'asc' },
+    })
+  } catch {
+    return []
+  }
 }
 
 export default async function TemplatesPage() {

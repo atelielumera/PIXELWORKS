@@ -3,10 +3,14 @@ import { prisma } from '@/lib/db'
 import { formatDate, formatCurrency } from '@/lib/utils'
 
 async function getGoals() {
-  return prisma.goal.findMany({
-    orderBy: { createdAt: 'desc' },
-    include: { _count: { select: { metrics: true } } },
-  })
+  try {
+    return await prisma.goal.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { _count: { select: { metrics: true } } },
+    })
+  } catch {
+    return []
+  }
 }
 
 export default async function GoalsPage() {

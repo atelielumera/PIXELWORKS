@@ -3,10 +3,14 @@ import { prisma } from '@/lib/db'
 import { formatDate } from '@/lib/utils'
 
 async function getUsers() {
-  return prisma.user.findMany({
-    orderBy: { name: 'asc' },
-    select: { id: true, name: true, email: true, role: true, department: true, isActive: true, createdAt: true, _count: { select: { taskAssignments: true } } },
-  })
+  try {
+    return await prisma.user.findMany({
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, email: true, role: true, department: true, isActive: true, createdAt: true, _count: { select: { taskAssignments: true } } },
+    })
+  } catch {
+    return []
+  }
 }
 
 const ROLE_STYLE: Record<string, string> = {

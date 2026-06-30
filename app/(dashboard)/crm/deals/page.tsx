@@ -5,15 +5,19 @@ import Link from 'next/link'
 import { Plus } from 'lucide-react'
 
 async function getDeals() {
-  return prisma.deal.findMany({
-    orderBy: { createdAt: 'desc' },
-    include: {
-      client: { select: { name: true } },
-      solution: true,
-      responsible: { select: { name: true } },
-    },
-    take: 100,
-  })
+  try {
+    return await prisma.deal.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        client: { select: { name: true } },
+        solution: true,
+        responsible: { select: { name: true } },
+      },
+      take: 100,
+    })
+  } catch {
+    return []
+  }
 }
 
 const STATUS_STYLE: Record<string, string> = {

@@ -4,21 +4,25 @@ import { formatDate } from '@/lib/utils'
 import { File, FileText, Image } from 'lucide-react'
 
 async function getFiles() {
-  return prisma.file.findMany({
-    orderBy: { createdAt: 'desc' },
-    include: {
-      attachments: {
-        include: {
-          client: { select: { name: true } },
-          project: { select: { name: true } },
-          task: { select: { title: true } },
-          lead: { select: { contactName: true } },
+  try {
+    return await prisma.file.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        attachments: {
+          include: {
+            client: { select: { name: true } },
+            project: { select: { name: true } },
+            task: { select: { title: true } },
+            lead: { select: { contactName: true } },
+          },
+          take: 1,
         },
-        take: 1,
       },
-    },
-    take: 100,
-  })
+      take: 100,
+    })
+  } catch {
+    return []
+  }
 }
 
 function FileIcon({ mime }: { mime: string }) {

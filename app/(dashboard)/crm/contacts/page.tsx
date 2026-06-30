@@ -3,11 +3,15 @@ import { prisma } from '@/lib/db'
 import Link from 'next/link'
 
 async function getContacts() {
-  return prisma.contact.findMany({
-    orderBy: { name: 'asc' },
-    include: { client: { select: { id: true, name: true } } },
-    take: 200,
-  })
+  try {
+    return await prisma.contact.findMany({
+      orderBy: { name: 'asc' },
+      include: { client: { select: { id: true, name: true } } },
+      take: 200,
+    })
+  } catch {
+    return []
+  }
 }
 
 export default async function ContactsPage() {

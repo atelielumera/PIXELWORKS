@@ -5,15 +5,19 @@ import Link from 'next/link'
 import { ThumbsUp, ThumbsDown, Clock } from 'lucide-react'
 
 async function getApprovals() {
-  return prisma.approval.findMany({
-    orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
-    include: {
-      project: { select: { id: true, name: true } },
-      requestedBy: { select: { name: true } },
-      assignee: { select: { name: true } },
-    },
-    take: 100,
-  })
+  try {
+    return await prisma.approval.findMany({
+      orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+      include: {
+        project: { select: { id: true, name: true } },
+        requestedBy: { select: { name: true } },
+        assignee: { select: { name: true } },
+      },
+      take: 100,
+    })
+  } catch {
+    return []
+  }
 }
 
 const STATUS_CONFIG: Record<string, { label: string; style: string; Icon: React.ElementType }> = {
