@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { Header } from '@/components/layout/header'
 import { prisma } from '@/lib/db'
 import { formatDate } from '@/lib/utils'
@@ -71,7 +73,11 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: ts?.color }} />
                         <div>
-                          <p className={`font-medium ${task.status === 'DONE' ? 'line-through text-gray-400' : 'text-gray-900'}`}>{task.title}</p>
+                          {task.project ? (
+                            <Link href={`/projects/${task.project.id}?task=${task.id}`} className={`font-medium hover:text-blue-600 hover:underline ${task.status === 'DONE' ? 'line-through text-gray-400' : 'text-gray-900'}`}>{task.title}</Link>
+                          ) : (
+                            <p className={`font-medium ${task.status === 'DONE' ? 'line-through text-gray-400' : 'text-gray-900'}`}>{task.title}</p>
+                          )}
                           {task._count.subtasks > 0 && <p className="text-xs text-gray-500">{task._count.subtasks} subtarefas</p>}
                         </div>
                       </div>
