@@ -7,6 +7,7 @@ import { prisma } from './db'
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
   session: { strategy: 'jwt' },
+  secret: process.env.NEXTAUTH_SECRET ?? 'pixelsav-workos-fallback-secret-2024',
   pages: { signIn: '/login' },
   providers: [
     CredentialsProvider({
