@@ -450,9 +450,24 @@ model ProjectCost {
   supplier    String?
   date        DateTime?
   notes       String?
+  paymentType String    @default("TOTAL") // TOTAL | INSTALLMENT
+  paymentDate DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  installments CostInstallment[]
+}
+
+model CostInstallment {
+  id        String    @id @default(cuid())
+  costId    String
+  number    Int
+  amount    Decimal   @db.Decimal(15, 2)
+  dueDate   DateTime
+  paidDate  DateTime?
+  paid      Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  cost      ProjectCost @relation(fields: [costId], references: [id], onDelete: Cascade)
 }
 
 // ============================================================
