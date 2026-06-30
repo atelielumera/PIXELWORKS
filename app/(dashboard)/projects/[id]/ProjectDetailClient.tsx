@@ -62,6 +62,7 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
   const [newMemberRole, setNewMemberRole] = useState('member')
   const [newTask, setNewTask] = useState({ title: '', section: 'Geral', priority: 'MEDIUM' })
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
 
   const status = PROJECT_STATUSES.find(s => s.key === project.status)
   const totalCosts = costs.reduce((s, c) => s + Number(c.actual ?? c.estimated ?? 0), 0)
@@ -103,11 +104,18 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
 
   async function saveProject() {
     setSaving(true)
-    const res = await fetch(`/api/projects/${project.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(editForm) })
-    if (res.ok) {
-      const { data } = await res.json()
-      setProject(p => ({ ...p, ...data }))
-      setShowEditProject(false)
+    setSaveError('')
+    try {
+      const res = await fetch(`/api/projects/${project.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(editForm) })
+      const json = await res.json()
+      if (res.ok) {
+        setProject(p => ({ ...p, ...json.data }))
+        setShowEditProject(false)
+      } else {
+        setSaveError(json.error ?? 'Erro ao salvar. Tente novamente.')
+      }
+    } catch {
+      setSaveError('Erro de conexão. Verifique sua internet.')
     }
     setSaving(false)
   }
@@ -371,8 +379,11 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
           <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
               <h3 className="font-semibold text-gray-900">Editar Projeto</h3>
-              <button onClick={() => setShowEditProject(false)}><X size={18} className="text-gray-400" /></button>
+              <button onClick={() => { setShowEditProject(false); setSaveError('') }}><X size={18} className="text-gray-400" /></button>
             </div>
+            {saveError && (
+              <div className="mx-5 mt-4 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">{saveError}</div>
+            )}
             <div className="p-5 space-y-4">
               <div>
                 <label className="text-xs font-medium text-gray-700 block mb-1">Nome do Projeto</label>
@@ -386,7 +397,9 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
               </div>
               <div>
                 <label className="text-xs font-medium text-gray-700 block mb-1">Orçamento Aprovado (R$)</label>
-                <input value={editForm.approvedBudget} onChange={e => setEditForm(p => ({ ...p, approvedBudget: e.target.value }))} type="number" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" />
+                <input value={editForm.approvedBudget} onChange={e => setEditForm(p => ({ ...p, approvedBudget: e.target.value }))}
+                  type="text" inputMode="decimal" placeholder="Ex: 50000,64"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
                 <label className="text-xs font-medium text-gray-700 block mb-1">Data do Evento</label>
@@ -424,7 +437,7 @@ export function ProjectDetailClient({ project: initial, users }: { project: Proj
               </div>
             </div>
             <div className="flex gap-3 px-5 pb-5">
-              <button onClick={() => setShowEditProject(false)} className="flex-1 border border-gray-200 text-gray-600 text-sm py-2 rounded-lg hover:bg-gray-50">Cancelar</button>
+              <button onClick={() => { setShowEditProject(false); setSaveError('') }} className="flex-1 border border-gray-200 text-gray-600 text-sm py-2 rounded-lg hover:bg-gray-50">Cancelar</button>
               <button onClick={saveProject} disabled={saving} className="flex-1 bg-blue-600 text-white text-sm py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50">{saving ? 'Salvando...' : 'Salvar'}</button>
             </div>
           </div>
