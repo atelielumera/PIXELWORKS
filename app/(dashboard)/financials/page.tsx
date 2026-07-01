@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { Header } from '@/components/layout/header'
 import { prisma } from '@/lib/db'
 import { formatCurrency } from '@/lib/utils'
+import { PROJECT_STATUSES } from '@/lib/constants'
 import Link from 'next/link'
 
 async function getFinancials() {
@@ -15,10 +16,8 @@ async function getFinancials() {
   ])
 
   const projectsDetail = await prisma.project.findMany({
-    where: { status: { in: ['PLANNING', 'IN_PROGRESS', 'ON_HOLD', 'AT_RISK'] } },
     select: { id: true, name: true, approvedBudget: true, actualCosts: true, estimatedCosts: true, status: true, solution: { select: { name: true, color: true } } },
     orderBy: { createdAt: 'desc' },
-    take: 20,
   })
 
   return { wonDeals, openDeals, projectCosts, timeEntryCosts, budgets, projectsDetail }
@@ -65,6 +64,7 @@ export default async function FinancialsPage() {
               <thead>
                 <tr className="border-b border-gray-100">
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Projeto</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Solução</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Orçamento</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Custo Real</th>
@@ -81,6 +81,9 @@ export default async function FinancialsPage() {
                     <tr key={p.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3">
                         <Link href={`/projects/${p.id}`} className="font-medium text-gray-900 hover:text-blue-600">{p.name}</Link>
+                      </td>
+                      <td className="px-4 py-3">
+                        {(() => { const st = PROJECT_STATUSES.find(s => s.key === p.status); return st ? <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${st.color}20`, color: st.color }}>{st.label}</span> : null })()}
                       </td>
                       <td className="px-4 py-3">
                         {p.solution && (
