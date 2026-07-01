@@ -26,6 +26,7 @@ type TeamItem = {
 
 const staticNav = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Minhas Tarefas', href: '/my-tasks', icon: CheckSquare },
   {
     name: 'CRM', icon: Users,
     children: [
