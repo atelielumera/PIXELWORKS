@@ -38,7 +38,8 @@ export default async function MyTasksPage({ searchParams }: { searchParams: Prom
   const session = await getServerSession(authOptions)
   const { status } = await searchParams
 
-  if (!session?.user?.id) {
+  const userId = (session?.user as any)?.id as string | undefined
+  if (!userId) {
     return (
       <div>
         <Header title="Minhas Tarefas" subtitle="Faça login para ver suas tarefas" />
@@ -46,7 +47,7 @@ export default async function MyTasksPage({ searchParams }: { searchParams: Prom
     )
   }
 
-  const tasks = await getMyTasks(session.user.id, status)
+  const tasks = await getMyTasks(userId, status)
   const now = new Date()
 
   const pending = tasks.filter(t => t.status !== 'DONE' && t.status !== 'CANCELLED').length
