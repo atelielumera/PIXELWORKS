@@ -608,16 +608,15 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
               <div>Responsável</div>
               <div>Prazo</div>
               {visibleCols.map(col => (
-                <div key={col.key} className="flex items-center gap-1">
-                  <span className="truncate">{col.label}</span>
+                <div key={col.key} className="flex flex-col gap-0.5">
                   <button onClick={() => hideCol(col.key)}
-                    className="ml-auto shrink-0"
-                    title={`Remover coluna ${col.label}`}
-                    style={{ color: '#ef4444', opacity: 0.7 }}
-                    onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
-                    onMouseLeave={e => (e.currentTarget.style.opacity = '0.7')}>
-                    <X size={11} />
+                    className="flex items-center gap-1 self-start text-[10px] font-normal normal-case tracking-normal px-1.5 py-0.5 rounded transition-colors"
+                    style={{ color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)' }}
+                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.2)')}
+                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.1)')}>
+                    <X size={9} />Excluir
                   </button>
+                  <span className="truncate">{col.label}</span>
                 </div>
               ))}
               {customFields.map(field => (
