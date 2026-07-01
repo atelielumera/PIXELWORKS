@@ -113,6 +113,12 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           <LayoutDashboard size={15} />Dashboard
         </Link>
 
+        {/* Minhas Tarefas */}
+        <Link href="/my-tasks" onClick={onClose} className={cn(
+          'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
+          pathname === '/my-tasks' ? 'bg-blue-600 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800'
+        )}><CheckSquare size={15} />Minhas Tarefas</Link>
+
         {/* CRM */}
         {(() => {
           const item = staticNav.find(n => n.name === 'CRM')!
