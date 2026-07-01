@@ -23,7 +23,7 @@ interface TaskDetailPanelProps {
   projectId: string
   users: User[]
   onClose: () => void
-  onTaskUpdate: (taskId: string, data: Partial<{ title: string; status: string; description: string; dueDate: string | null }>) => void
+  onTaskUpdate: (taskId: string, data: Partial<{ title: string; status: string; description: string; dueDate: string | null; assignees: { userId: string; user: { id: string; name: string } }[] }>) => void
 }
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -55,12 +55,42 @@ export function TaskDetailPanel({ task, projectId, users, onClose, onTaskUpdate 
   const [newSubtask, setNewSubtask] = useState('')
   const [newComment, setNewComment] = useState('')
   const [loading, setLoading] = useState(true)
+  const [assignees, setAssignees] = useState(task.assignees)
+  const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false)
+  const assigneeRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     loadData()
+    setAssignees(task.assignees)
   }, [task.id])
+
+  useEffect(() => {
+    if (!showAssigneeDropdown) return
+    const handler = (e: MouseEvent) => {
+      if (assigneeRef.current && !assigneeRef.current.contains(e.target as Node)) setShowAssigneeDropdown(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showAssigneeDropdown])
+
+  async function toggleAssignee(userId: string, userName: string) {
+    const alreadyAssigned = assignees.some(a => a.userId === userId)
+    const next = alreadyAssigned
+      ? assignees.filter(a => a.userId !== userId)
+      : [...assignees, { userId, user: { id: userId, name: userName } }]
+    const ids = next.map(a => a.userId)
+    const res = await fetch(`/api/tasks/${task.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assigneeIds: ids }),
+    })
+    if (res.ok) {
+      setAssignees(next)
+      onTaskUpdate(task.id, { assignees: next })
+    }
+  }
 
   async function loadData() {
     setLoading(true)
@@ -192,19 +222,52 @@ export function TaskDetailPanel({ task, projectId, users, onClose, onTaskUpdate 
           </div>
 
           {/* Meta row */}
-          <div className="px-5 pb-4 flex flex-wrap gap-3">
-            {task.assignees.length > 0 && (
+          <div className="px-5 pb-4 flex flex-wrap gap-4">
+            {/* Assignees editor */}
+            <div ref={assigneeRef} className="relative">
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-gray-500">Responsáveis:</span>
-                <div className="flex -space-x-1">
-                  {task.assignees.map(a => (
-                    <div key={a.userId} className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-[10px] font-bold border-2 border-white" title={a.user.name}>
-                      {a.user.name.charAt(0)}
-                    </div>
-                  ))}
+                <div className="flex items-center gap-1">
+                  <div className="flex -space-x-1">
+                    {assignees.map(a => (
+                      <div key={a.userId} className="relative group/avatar">
+                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-[10px] font-bold border-2 border-white cursor-pointer" title={a.user.name}
+                          onClick={() => toggleAssignee(a.userId, a.user.name)}>
+                          {a.user.name.charAt(0)}
+                        </div>
+                        <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap opacity-0 group-hover/avatar:opacity-100 pointer-events-none z-10">
+                          {a.user.name} ✕
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <button onClick={() => setShowAssigneeDropdown(o => !o)}
+                    className="w-6 h-6 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors">
+                    <Plus size={10} />
+                  </button>
                 </div>
               </div>
-            )}
+              {showAssigneeDropdown && (
+                <div className="absolute top-full left-0 mt-1 z-50 bg-white rounded-xl shadow-2xl border border-gray-100 min-w-[180px] overflow-hidden">
+                  <div className="max-h-48 overflow-y-auto py-1">
+                    {users.map(u => {
+                      const sel = assignees.some(a => a.userId === u.id)
+                      return (
+                        <button key={u.id} onClick={() => toggleAssignee(u.id, u.name)}
+                          className="flex items-center gap-2 w-full text-left px-3 py-2 text-xs hover:bg-gray-50 transition-colors">
+                          <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-[9px] font-bold shrink-0">
+                            {u.name.charAt(0)}
+                          </div>
+                          <span className={`flex-1 truncate ${sel ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>{u.name}</span>
+                          {sel && <Check size={12} className="text-blue-500 shrink-0" />}
+                        </button>
+                      )
+                    })}
+                    {users.length === 0 && <p className="px-3 py-2 text-xs text-gray-400">Nenhum usuário</p>}
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="flex items-center gap-1.5">
               <Calendar size={12} className="text-gray-400" />
               <span className="text-xs text-gray-600">{task.dueDate ? formatDate(task.dueDate) : 'Sem prazo'}</span>
