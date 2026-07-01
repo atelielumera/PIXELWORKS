@@ -231,12 +231,12 @@ export function TaskDetailPanel({ task, projectId, users, onClose, onTaskUpdate 
                   <div className="flex -space-x-1">
                     {assignees.map(a => (
                       <div key={a.userId} className="relative group/avatar">
-                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-[10px] font-bold border-2 border-white cursor-pointer" title={a.user.name}
-                          onClick={() => toggleAssignee(a.userId, a.user.name)}>
-                          {a.user.name.charAt(0)}
+                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-[10px] font-bold border-2 border-white cursor-pointer" title={a.user.name ?? undefined}
+                          onClick={() => toggleAssignee(a.userId, a.user.name ?? '')}>
+                          {(a.user.name ?? '?').charAt(0)}
                         </div>
                         <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap opacity-0 group-hover/avatar:opacity-100 pointer-events-none z-10">
-                          {a.user.name} ✕
+                          {a.user.name ?? 'Usuário'} ✕
                         </div>
                       </div>
                     ))}
@@ -384,7 +384,7 @@ export function TaskDetailPanel({ task, projectId, users, onClose, onTaskUpdate 
                         <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-xs font-bold shrink-0 mt-0.5">
                           {c.user.avatar ? (
                             <img src={c.user.avatar} alt={c.user.name} className="w-7 h-7 rounded-full object-cover" />
-                          ) : c.user.name.charAt(0)}
+                          ) : (c.user.name ?? '?').charAt(0)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
