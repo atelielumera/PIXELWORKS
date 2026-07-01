@@ -608,15 +608,15 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
               <div>Responsável</div>
               <div>Prazo</div>
               {visibleCols.map(col => (
-                <div key={col.key} className="flex items-center gap-1 group/col">
-                  <span className="truncate">{col.label}</span>
+                <div key={col.key} className="flex flex-col gap-0.5">
                   <button onClick={() => hideCol(col.key)}
-                    className="opacity-0 group-hover/col:opacity-100 ml-auto shrink-0 transition-opacity"
-                    style={{ color: '#4b5563' }}
-                    onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
-                    onMouseLeave={e => (e.currentTarget.style.color = '#4b5563')}>
-                    <X size={10} />
+                    className="flex items-center gap-1 self-start text-[10px] font-normal normal-case tracking-normal px-1.5 py-0.5 rounded transition-colors"
+                    style={{ color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)' }}
+                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.2)')}
+                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.1)')}>
+                    <X size={9} />Excluir
                   </button>
+                  <span className="truncate">{col.label}</span>
                 </div>
               ))}
               {customFields.map(field => (
