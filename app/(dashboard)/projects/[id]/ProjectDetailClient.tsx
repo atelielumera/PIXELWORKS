@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Plus, Trash2, Edit2, Check, X, UserPlus, ChevronDown, ChevronRight, Award, Calendar, DollarSign, Users, LayoutGrid, List, BarChart3, Clock, AlertCircle, CheckCircle2, Type, Hash } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Edit2, Check, X, UserPlus, ChevronDown, ChevronRight, Award, Calendar, DollarSign, Users, Type, Hash } from 'lucide-react'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { PROJECT_STATUSES, TASK_STATUSES } from '@/lib/constants'
 import { TaskDetailPanel } from '@/components/tasks/task-detail-panel'
@@ -13,7 +13,6 @@ type CustomField = { id: string; name: string; fieldType: string; sortOrder: num
 type Task = {
   id: string; title: string; status: string; priority: string; section: string | null
   dueDate: string | null; completedAt: string | null; description?: string | null
-  prestador: string | null; fornecedor: string | null; eixoTematico: string | null
   assignees: TaskAssignee[]; _count: { subtasks: number }
   customFieldValues: { fieldId: string; value: string | null }[]
 }
@@ -186,16 +185,29 @@ function AssigneeCell({ assignees, users, onSave }: {
 
   return (
     <div ref={ref} className="relative">
-      <button onClick={() => setOpen(o => !o)} className="flex -space-x-1 hover:opacity-80 transition-opacity">
-        {assignees.slice(0, 3).map(a => (
-          <div key={a.userId} className="w-5 h-5 rounded-full bg-blue-600 border border-[#1e1f21] flex items-center justify-center text-white text-[9px] font-bold shrink-0" title={a.user.name}>
-            {a.user.name.charAt(0)}
-          </div>
-        ))}
-        {assignees.length === 0 && (
-          <div className="w-5 h-5 rounded-full border-2 border-dashed flex items-center justify-center" style={{ borderColor: '#3d3f44' }}>
+      <button onClick={() => setOpen(o => !o)} className="flex items-center gap-1.5 hover:opacity-80 transition-opacity max-w-full">
+        {assignees.length === 0 ? (
+          <div className="w-5 h-5 rounded-full border-2 border-dashed flex items-center justify-center shrink-0" style={{ borderColor: '#3d3f44' }}>
             <UserPlus size={9} style={{ color: '#4b5563' }} />
           </div>
+        ) : (
+          <>
+            {assignees.slice(0, 2).map(a => {
+              const fullUser = users.find(u => u.id === a.userId)
+              return fullUser?.avatar ? (
+                <img key={a.userId} src={fullUser.avatar} alt={a.user.name}
+                  className="w-5 h-5 rounded-full object-cover shrink-0 border border-[#1e1f21]" title={a.user.name} />
+              ) : (
+                <div key={a.userId} className="w-5 h-5 rounded-full bg-blue-600 border border-[#1e1f21] flex items-center justify-center text-white text-[9px] font-bold shrink-0" title={a.user.name}>
+                  {a.user.name.charAt(0)}
+                </div>
+              )
+            })}
+            <span className="text-xs truncate" style={{ color: '#d1d5db', maxWidth: 80 }}>
+              {assignees[0].user.name.split(' ')[0]}
+              {assignees.length > 1 && ` +${assignees.length - 1}`}
+            </span>
+          </>
         )}
       </button>
       {open && (
@@ -257,7 +269,7 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
   const [newTaskTitle, setNewTaskTitle] = useState('')
 
   const [editingTask, setEditingTask] = useState<Task | null>(null)
-  const [editTaskForm, setEditTaskForm] = useState({ title: '', status: '', priority: '', section: '', dueDate: '', prestador: '', fornecedor: '', eixoTematico: '' })
+  const [editTaskForm, setEditTaskForm] = useState({ title: '', status: '', priority: '', section: '', dueDate: '' })
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
 
   const [showEditProject, setShowEditProject] = useState(false)
@@ -363,12 +375,12 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
 
   function openEditTask(task: Task) {
     setEditingTask(task)
-    setEditTaskForm({ title: task.title, status: task.status, priority: task.priority, section: task.section ?? '', dueDate: task.dueDate ? task.dueDate.slice(0, 10) : '', prestador: task.prestador ?? '', fornecedor: task.fornecedor ?? '', eixoTematico: task.eixoTematico ?? '' })
+    setEditTaskForm({ title: task.title, status: task.status, priority: task.priority, section: task.section ?? '', dueDate: task.dueDate ? task.dueDate.slice(0, 10) : '' })
   }
 
   async function saveTaskModal() {
     if (!editingTask) return
-    const body = { title: editTaskForm.title, status: editTaskForm.status, priority: editTaskForm.priority, section: editTaskForm.section || null, dueDate: editTaskForm.dueDate || null, prestador: editTaskForm.prestador || null, fornecedor: editTaskForm.fornecedor || null, eixoTematico: editTaskForm.eixoTematico || null }
+    const body = { title: editTaskForm.title, status: editTaskForm.status, priority: editTaskForm.priority, section: editTaskForm.section || null, dueDate: editTaskForm.dueDate || null }
     const res = await fetch(`/api/tasks/${editingTask.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     if (res.ok) { setTasks(prev => prev.map(t => t.id === editingTask.id ? { ...t, ...body } : t)); setEditingTask(null) }
   }
@@ -568,15 +580,12 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
                 backgroundColor: '#292a2e',
                 borderBottom: '1px solid #3d3f44',
                 color: '#6b7280',
-                gridTemplateColumns: `28px 1fr 110px 100px 110px 110px 110px${customFields.map(() => ' 120px').join('')} 90px`,
+                gridTemplateColumns: `28px 1fr 140px 100px${customFields.map(() => ' 120px').join('')} 90px`,
               }}>
               <div />
               <div>Nome da Tarefa</div>
               <div>Responsável</div>
               <div>Prazo</div>
-              <div className="flex items-center gap-1"><Award size={11} className="text-yellow-500/70" />Prestador</div>
-              <div className="flex items-center gap-1"><Award size={11} className="text-yellow-500/70" />Fornecedor</div>
-              <div className="flex items-center gap-1"><Award size={11} className="text-yellow-500/70" />Eixo Temático</div>
               {customFields.map(field => (
                 <div key={field.id} className="flex items-center gap-1 group/col">
                   <Award size={11} style={{ color: '#ca8a04', opacity: 0.7 }} />
@@ -651,7 +660,7 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
                             className="grid group items-center px-4 py-2 transition-colors"
                             style={{
                               borderBottom: '1px solid #2c2e33',
-                              gridTemplateColumns: `28px 1fr 110px 100px 110px 110px 110px${customFields.map(() => ' 120px').join('')} 90px`,
+                              gridTemplateColumns: `28px 1fr 140px 100px${customFields.map(() => ' 120px').join('')} 90px`,
                               backgroundColor: highlightTaskId === task.id ? 'rgba(59,130,246,0.12)' : 'transparent',
                               outline: highlightTaskId === task.id ? '1px solid rgba(59,130,246,0.4)' : 'none',
                               borderRadius: highlightTaskId === task.id ? 4 : 0,
@@ -684,21 +693,6 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
                               value={task.dueDate}
                               onSave={v => patchTask(task.id, { dueDate: v })}
                             />
-
-                            {/* Prestador — combobox com sugestões */}
-                            <ComboCell value={task.prestador} placeholder="Prestador"
-                              suggestions={tasks.map(t => t.prestador).filter((v): v is string => !!v)}
-                              onSave={v => patchTask(task.id, { prestador: v || null })} />
-
-                            {/* Fornecedor — combobox com sugestões */}
-                            <ComboCell value={task.fornecedor} placeholder="Fornecedor"
-                              suggestions={tasks.map(t => t.fornecedor).filter((v): v is string => !!v)}
-                              onSave={v => patchTask(task.id, { fornecedor: v || null })} />
-
-                            {/* Eixo Temático — combobox com sugestões */}
-                            <ComboCell value={task.eixoTematico} placeholder="Eixo Temático"
-                              suggestions={tasks.map(t => t.eixoTematico).filter((v): v is string => !!v)}
-                              onSave={v => patchTask(task.id, { eixoTematico: v || null })} />
 
                             {/* Campos personalizados dinâmicos */}
                             {customFields.map(field => {
@@ -793,12 +787,6 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
                         </span>
                         {task.dueDate && <span className="text-xs" style={{ color: '#6b7280' }}>{formatDate(task.dueDate)}</span>}
                       </div>
-                      {(task.prestador || task.fornecedor) && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {task.prestador && <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: '#7c3aed20', color: '#a78bfa' }}>{task.prestador}</span>}
-                          {task.fornecedor && <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: '#d9770620', color: '#fb923c' }}>{task.fornecedor}</span>}
-                        </div>
-                      )}
                     </div>
                   ))}
                   <button onClick={() => { setActiveTab('lista'); setTimeout(() => setAddingInSection(sections[0] ?? 'Geral'), 100) }}
@@ -1009,9 +997,6 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
                 { label: 'Título *', field: 'title', type: 'text' },
                 { label: 'Seção', field: 'section', type: 'text' },
                 { label: 'Prazo', field: 'dueDate', type: 'date' },
-                { label: 'Prestador', field: 'prestador', type: 'text' },
-                { label: 'Fornecedor', field: 'fornecedor', type: 'text' },
-                { label: 'Eixo Temático', field: 'eixoTematico', type: 'text' },
               ].map(({ label, field, type }) => (
                 <div key={field}>
                   <label className="text-xs font-medium block mb-1" style={{ color: '#9ca3af' }}>{label}</label>
