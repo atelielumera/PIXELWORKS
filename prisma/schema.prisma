@@ -533,6 +533,9 @@ model Task {
   estimatedHours Decimal?     @db.Decimal(8, 2)
   actualHours    Decimal?     @db.Decimal(8, 2)
   tags           String[]
+  eixoTematico   String?
+  prestador      String?
+  fornecedor     String?
   createdById    String?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
