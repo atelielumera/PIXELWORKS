@@ -185,16 +185,29 @@ function AssigneeCell({ assignees, users, onSave }: {
 
   return (
     <div ref={ref} className="relative">
-      <button onClick={() => setOpen(o => !o)} className="flex -space-x-1 hover:opacity-80 transition-opacity">
-        {assignees.slice(0, 3).map(a => (
-          <div key={a.userId} className="w-5 h-5 rounded-full bg-blue-600 border border-[#1e1f21] flex items-center justify-center text-white text-[9px] font-bold shrink-0" title={a.user.name}>
-            {a.user.name.charAt(0)}
-          </div>
-        ))}
-        {assignees.length === 0 && (
-          <div className="w-5 h-5 rounded-full border-2 border-dashed flex items-center justify-center" style={{ borderColor: '#3d3f44' }}>
+      <button onClick={() => setOpen(o => !o)} className="flex items-center gap-1.5 hover:opacity-80 transition-opacity max-w-full">
+        {assignees.length === 0 ? (
+          <div className="w-5 h-5 rounded-full border-2 border-dashed flex items-center justify-center shrink-0" style={{ borderColor: '#3d3f44' }}>
             <UserPlus size={9} style={{ color: '#4b5563' }} />
           </div>
+        ) : (
+          <>
+            {assignees.slice(0, 2).map(a => {
+              const fullUser = users.find(u => u.id === a.userId)
+              return fullUser?.avatar ? (
+                <img key={a.userId} src={fullUser.avatar} alt={a.user.name}
+                  className="w-5 h-5 rounded-full object-cover shrink-0 border border-[#1e1f21]" title={a.user.name} />
+              ) : (
+                <div key={a.userId} className="w-5 h-5 rounded-full bg-blue-600 border border-[#1e1f21] flex items-center justify-center text-white text-[9px] font-bold shrink-0" title={a.user.name}>
+                  {a.user.name.charAt(0)}
+                </div>
+              )
+            })}
+            <span className="text-xs truncate" style={{ color: '#d1d5db', maxWidth: 80 }}>
+              {assignees[0].user.name.split(' ')[0]}
+              {assignees.length > 1 && ` +${assignees.length - 1}`}
+            </span>
+          </>
         )}
       </button>
       {open && (
@@ -567,7 +580,7 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
                 backgroundColor: '#292a2e',
                 borderBottom: '1px solid #3d3f44',
                 color: '#6b7280',
-                gridTemplateColumns: `28px 1fr 110px 100px${customFields.map(() => ' 120px').join('')} 90px`,
+                gridTemplateColumns: `28px 1fr 140px 100px${customFields.map(() => ' 120px').join('')} 90px`,
               }}>
               <div />
               <div>Nome da Tarefa</div>
@@ -647,7 +660,7 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
                             className="grid group items-center px-4 py-2 transition-colors"
                             style={{
                               borderBottom: '1px solid #2c2e33',
-                              gridTemplateColumns: `28px 1fr 110px 100px${customFields.map(() => ' 120px').join('')} 90px`,
+                              gridTemplateColumns: `28px 1fr 140px 100px${customFields.map(() => ' 120px').join('')} 90px`,
                               backgroundColor: highlightTaskId === task.id ? 'rgba(59,130,246,0.12)' : 'transparent',
                               outline: highlightTaskId === task.id ? '1px solid rgba(59,130,246,0.4)' : 'none',
                               borderRadius: highlightTaskId === task.id ? 4 : 0,
