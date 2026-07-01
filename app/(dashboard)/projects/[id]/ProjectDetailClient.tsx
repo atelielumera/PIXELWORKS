@@ -13,9 +13,17 @@ type CustomField = { id: string; name: string; fieldType: string; sortOrder: num
 type Task = {
   id: string; title: string; status: string; priority: string; section: string | null
   dueDate: string | null; completedAt: string | null; description?: string | null
+  eixoTematico: string | null; prestador: string | null; fornecedor: string | null
   assignees: TaskAssignee[]; _count: { subtasks: number }
   customFieldValues: { fieldId: string; value: string | null }[]
 }
+
+const BUILT_IN_COLS = [
+  { key: 'eixoTematico', label: 'Eixo Temático' },
+  { key: 'prestador',    label: 'Prestador' },
+  { key: 'fornecedor',   label: 'Fornecedor' },
+] as const
+type BuiltInColKey = typeof BUILT_IN_COLS[number]['key']
 type ProjectMember = { userId: string; role: string; user: { id: string; name: string; avatar: string | null } }
 type Cost = { id: string; category: string; description: string; estimated: string | null; actual: string | null; supplier: string | null }
 type Project = {
@@ -253,6 +261,18 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
   const [costs, setCosts] = useState(initial.costs)
   const [members, setMembers] = useState(initial.members)
   const [customFields, setCustomFields] = useState<CustomField[]>(initial.customFields ?? [])
+  const [hiddenCols, setHiddenCols] = useState<Set<BuiltInColKey>>(() => {
+    if (typeof window === 'undefined') return new Set()
+    try { return new Set(JSON.parse(localStorage.getItem(`proj-cols-${initial.id}`) ?? '[]') as BuiltInColKey[]) } catch { return new Set() }
+  })
+  const visibleCols = BUILT_IN_COLS.filter(c => !hiddenCols.has(c.key))
+  function hideCol(key: BuiltInColKey) {
+    setHiddenCols(prev => {
+      const next = new Set(prev); next.add(key)
+      localStorage.setItem(`proj-cols-${initial.id}`, JSON.stringify([...next]))
+      return next
+    })
+  }
   const [addingField, setAddingField] = useState(false)
   const [newFieldName, setNewFieldName] = useState('')
   const [newFieldType, setNewFieldType] = useState<'TEXT' | 'CURRENCY'>('TEXT')
@@ -581,12 +601,24 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
                 backgroundColor: '#292a2e',
                 borderBottom: '1px solid #3d3f44',
                 color: '#6b7280',
-                gridTemplateColumns: `28px 1fr 160px 100px${customFields.map(() => ' 120px').join('')} 90px`,
+                gridTemplateColumns: `28px 1fr 160px 100px${visibleCols.map(() => ' 120px').join('')}${customFields.map(() => ' 120px').join('')} 90px`,
               }}>
               <div />
               <div>Nome da Tarefa</div>
               <div>Responsável</div>
               <div>Prazo</div>
+              {visibleCols.map(col => (
+                <div key={col.key} className="flex items-center gap-1 group/col">
+                  <span className="truncate">{col.label}</span>
+                  <button onClick={() => hideCol(col.key)}
+                    className="opacity-0 group-hover/col:opacity-100 ml-auto shrink-0 transition-opacity"
+                    style={{ color: '#4b5563' }}
+                    onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
+                    onMouseLeave={e => (e.currentTarget.style.color = '#4b5563')}>
+                    <X size={10} />
+                  </button>
+                </div>
+              ))}
               {customFields.map(field => (
                 <div key={field.id} className="flex items-center gap-1 group/col">
                   <Award size={11} style={{ color: '#ca8a04', opacity: 0.7 }} />
@@ -627,6 +659,23 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
                     </div>
                   </div>
                 ) : (
+                  <div className="flex items-center gap-1">
+                    {hiddenCols.size > 0 && BUILT_IN_COLS.filter(c => hiddenCols.has(c.key)).map(col => (
+                      <button key={col.key}
+                        onClick={() => {
+                          setHiddenCols(prev => {
+                            const next = new Set(prev); next.delete(col.key)
+                            localStorage.setItem(`proj-cols-${initial.id}`, JSON.stringify([...next]))
+                            return next
+                          })
+                        }}
+                        className="flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors normal-case font-normal tracking-normal"
+                        style={{ color: '#4b5563' }}
+                        onMouseEnter={e => (e.currentTarget.style.color = '#10b981')}
+                        onMouseLeave={e => (e.currentTarget.style.color = '#4b5563')}>
+                        <Plus size={10} />{col.label}
+                      </button>
+                    ))}
                   <button onClick={() => setAddingField(true)}
                     className="flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors normal-case font-normal tracking-normal"
                     style={{ color: '#4b5563' }}
@@ -634,6 +683,7 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
                     onMouseLeave={e => (e.currentTarget.style.color = '#4b5563')}>
                     <Plus size={12} />Coluna
                   </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -661,7 +711,7 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
                             className="grid group items-center px-4 py-2 transition-colors"
                             style={{
                               borderBottom: '1px solid #2c2e33',
-                              gridTemplateColumns: `28px 1fr 160px 100px${customFields.map(() => ' 120px').join('')} 90px`,
+                              gridTemplateColumns: `28px 1fr 160px 100px${visibleCols.map(() => ' 120px').join('')}${customFields.map(() => ' 120px').join('')} 90px`,
                               backgroundColor: highlightTaskId === task.id ? 'rgba(59,130,246,0.12)' : 'transparent',
                               outline: highlightTaskId === task.id ? '1px solid rgba(59,130,246,0.4)' : 'none',
                               borderRadius: highlightTaskId === task.id ? 4 : 0,
@@ -694,6 +744,18 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
                               value={task.dueDate}
                               onSave={v => patchTask(task.id, { dueDate: v })}
                             />
+
+                            {/* Colunas padrão (ocultáveis) */}
+                            {visibleCols.map(col => {
+                              const suggestions = tasks.map(t => (t as any)[col.key]).filter(Boolean) as string[]
+                              return (
+                                <ComboCell key={col.key}
+                                  value={(task as any)[col.key] ?? null}
+                                  placeholder={col.label}
+                                  suggestions={[...new Set(suggestions)]}
+                                  onSave={v => patchTask(task.id, { [col.key]: v || null } as any)} />
+                              )
+                            })}
 
                             {/* Campos personalizados dinâmicos */}
                             {customFields.map(field => {
