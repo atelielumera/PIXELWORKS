@@ -161,8 +161,8 @@ function DateCell({ value, onSave }: { value: string | null; onSave: (v: string 
 }
 
 const AVATAR_COLORS = ['#3b82f6','#8b5cf6','#ec4899','#f59e0b','#10b981','#ef4444','#06b6d4','#f97316','#6366f1','#14b8a6']
-function avatarColor(name: string) { let h = 0; for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h); return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length] }
-function userInitials(name: string) { const p = name.trim().split(' ').filter(Boolean); return p.length >= 2 ? (p[0][0] + p[p.length - 1][0]).toUpperCase() : name.slice(0, 2).toUpperCase() }
+function avatarColor(name: string | null | undefined) { const n = name || '?'; let h = 0; for (let i = 0; i < n.length; i++) h = n.charCodeAt(i) + ((h << 5) - h); return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length] }
+function userInitials(name: string | null | undefined) { const n = (name || '?').trim(); const p = n.split(' ').filter(Boolean); return p.length >= 2 ? (p[0][0] + p[p.length - 1][0]).toUpperCase() : n.slice(0, 2).toUpperCase() }
 
 // ─── Assignee cell: multi-select dropdown of users ───────────────────────────
 function AssigneeCell({ assignees, users, onSave }: {
