@@ -45,11 +45,15 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const [project, users] = await Promise.all([getProject(id), getUsers()])
   if (!project) notFound()
 
+  // Prisma Decimal fields are not serializable across the server→client boundary.
+  // JSON round-trip converts them to plain strings/numbers.
+  const projectData = JSON.parse(JSON.stringify(project))
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <Header title={project.name} subtitle={project.client?.name ?? 'Projeto'} />
       <div className="flex-1 overflow-hidden">
-        <ProjectDetailClient project={project as any} users={users} />
+        <ProjectDetailClient project={projectData} users={users} />
       </div>
     </div>
   )
