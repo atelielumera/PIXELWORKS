@@ -10,6 +10,7 @@ import { TaskDetailPanel } from '@/components/tasks/task-detail-panel'
 type User = { id: string; name: string; email: string; role: string; department: string | null; avatar: string | null }
 type TaskAssignee = { userId: string; user: { id: string; name: string } }
 type CustomField = { id: string; name: string; fieldType: string; sortOrder: number }
+type ProjectSection = { id: string; name: string; startDate: string | null; eventDate: string | null; endDate: string | null; sortOrder: number }
 type Task = {
   id: string; title: string; status: string; priority: string; section: string | null
   dueDate: string | null; completedAt: string | null; description?: string | null
@@ -37,6 +38,7 @@ type Project = {
   solution: { id: string; name: string; color: string | null } | null
   tasks: Task[]; members: ProjectMember[]; costs: Cost[]
   customFields: CustomField[]
+  sections: ProjectSection[]
 }
 
 const PRIORITY_STYLE: Record<string, { label: string; color: string }> = {
@@ -261,6 +263,9 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
   const [costs, setCosts] = useState(initial.costs)
   const [members, setMembers] = useState(initial.members)
   const [customFields, setCustomFields] = useState<CustomField[]>(initial.customFields ?? [])
+  const [sectionRecords, setSectionRecords] = useState<ProjectSection[]>(initial.sections ?? [])
+  const [showAddSection, setShowAddSection] = useState(false)
+  const [newSectionForm, setNewSectionForm] = useState({ name: '', startDate: '', eventDate: '', endDate: '' })
   const [hiddenCols, setHiddenCols] = useState<Set<BuiltInColKey>>(() => {
     if (typeof window === 'undefined') return new Set()
     try { return new Set(JSON.parse(localStorage.getItem(`proj-cols-${initial.id}`) ?? '[]') as BuiltInColKey[]) } catch { return new Set() }
@@ -321,11 +326,17 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
 
   const tasksBySection: Record<string, Task[]> = {}
   for (const t of tasks) {
-    const sec = t.section ?? 'Sem seção'
+    const sec = t.section ?? 'Geral'
     if (!tasksBySection[sec]) tasksBySection[sec] = []
     tasksBySection[sec].push(t)
   }
-  const sections = Object.keys(tasksBySection)
+  const sectionRecordNames = new Set(sectionRecords.map(s => s.name))
+  const orderedSections: string[] = [
+    ...sectionRecords.map(s => s.name),
+    ...Object.keys(tasksBySection).filter(s => !sectionRecordNames.has(s)),
+  ]
+  const sections = orderedSections.filter(s => tasksBySection[s] || sectionRecordNames.has(s))
+  function getSectionRecord(name: string) { return sectionRecords.find(s => s.name === name) ?? null }
 
   // Kanban columns
   const kanbanCols = TASK_STATUSES.map(s => ({ ...s, tasks: tasks.filter(t => t.status === s.key) }))
@@ -392,6 +403,31 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
     await fetch(`/api/projects/${project.id}/fields/${fieldId}`, { method: 'DELETE' })
     setCustomFields(prev => prev.filter(f => f.id !== fieldId))
     setTasks(prev => prev.map(t => ({ ...t, customFieldValues: t.customFieldValues.filter(v => v.fieldId !== fieldId) })))
+  }
+
+  async function addSection() {
+    if (!newSectionForm.name.trim()) return
+    const res = await fetch(`/api/projects/${project.id}/sections`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: newSectionForm.name.trim(),
+        startDate: newSectionForm.startDate || null,
+        eventDate: newSectionForm.eventDate || null,
+        endDate: newSectionForm.endDate || null,
+      }),
+    })
+    if (res.ok) {
+      const { data } = await res.json()
+      setSectionRecords(prev => [...prev, data])
+      setNewSectionForm({ name: '', startDate: '', eventDate: '', endDate: '' })
+      setShowAddSection(false)
+    }
+  }
+
+  async function deleteSection(sectionId: string) {
+    await fetch(`/api/projects/${project.id}/sections?sectionId=${sectionId}`, { method: 'DELETE' })
+    setSectionRecords(prev => prev.filter(s => s.id !== sectionId))
   }
 
   function openEditTask(task: Task) {
@@ -690,14 +726,33 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
 
             {sections.map(section => {
               const isCollapsed = collapsedSections.has(section)
-              const sectionTasks = tasksBySection[section]
+              const sectionTasks = tasksBySection[section] ?? []
+              const rec = getSectionRecord(section)
               return (
                 <div key={section}>
                   {/* Cabeçalho de seção */}
-                  <div className="flex items-center gap-2 px-4 py-2 cursor-pointer group" style={{ borderBottom: '1px solid #3d3f44', backgroundColor: '#24252a' }} onClick={() => toggleSection(section)}>
+                  <div className="flex items-center gap-2 px-4 py-2 cursor-pointer group/sec" style={{ borderBottom: '1px solid #3d3f44', backgroundColor: '#24252a' }} onClick={() => toggleSection(section)}>
                     {isCollapsed ? <ChevronRight size={13} style={{ color: '#4b5563' }} /> : <ChevronDown size={13} style={{ color: '#4b5563' }} />}
                     <span className="text-xs font-bold uppercase tracking-wide" style={{ color: '#9ca3af' }}>{section}</span>
                     <span className="text-xs" style={{ color: '#4b5563' }}>({sectionTasks.length})</span>
+                    {rec && (rec.startDate || rec.eventDate || rec.endDate) && (
+                      <span className="text-xs ml-1" style={{ color: '#4b5563' }}>
+                        {[
+                          rec.startDate && `Início: ${formatDate(rec.startDate)}`,
+                          rec.eventDate && `Evento: ${formatDate(rec.eventDate)}`,
+                          rec.endDate && `Fim: ${formatDate(rec.endDate)}`,
+                        ].filter(Boolean).join(' · ')}
+                      </span>
+                    )}
+                    {rec && (
+                      <button onClick={e => { e.stopPropagation(); deleteSection(rec.id) }}
+                        className="ml-auto opacity-0 group-hover/sec:opacity-100 p-1 rounded transition-opacity"
+                        style={{ color: '#4b5563' }}
+                        onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
+                        onMouseLeave={e => (e.currentTarget.style.color = '#4b5563')}>
+                        <Trash2 size={11} />
+                      </button>
+                    )}
                   </div>
 
                   {!isCollapsed && (
@@ -803,28 +858,21 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
               )
             })}
 
-            {/* Add tarefa geral */}
-            {addingInSection === '__new__' ? (
-              <div className="flex items-center gap-2 px-4 py-3">
-                <input autoFocus value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') addTaskInSection(sections[0] ?? 'Geral'); if (e.key === 'Escape') { setAddingInSection(null); setNewTaskTitle('') } }}
-                  placeholder="Nome da tarefa" className="flex-1 text-sm px-3 py-2 rounded-lg outline-none" style={{ backgroundColor: '#32343a', border: '1px solid #3d3f44', color: '#f3f4f6' }} />
-                <button onClick={() => addTaskInSection(sections[0] ?? 'Geral')} className="text-xs px-3 py-2 rounded-lg bg-blue-600 text-white">Adicionar</button>
-                <button onClick={() => { setAddingInSection(null); setNewTaskTitle('') }} style={{ color: '#6b7280' }}><X size={14} /></button>
+
+            {tasks.length === 0 && sectionRecords.length === 0 && (
+              <div className="py-16 text-center text-sm" style={{ color: '#4b5563' }}>
+                Nenhuma tarefa. Clique em "Adicionar Seção" para começar.
               </div>
-            ) : (
-              <button onClick={() => setAddingInSection(sections[0] ?? 'Geral')} className="flex items-center gap-2 px-4 py-3 w-full text-left text-sm transition-colors" style={{ color: '#4b5563' }}
-                onMouseEnter={e => { (e.currentTarget.style.color = '#3b82f6') }}
-                onMouseLeave={e => { (e.currentTarget.style.color = '#4b5563') }}>
-                <Plus size={14} />Adicionar tarefa
-              </button>
             )}
 
-            {tasks.length === 0 && (
-              <div className="py-16 text-center text-sm" style={{ color: '#4b5563' }}>
-                Nenhuma tarefa. Clique em "Adicionar tarefa" para começar.
-              </div>
-            )}
+            {/* Botão Adicionar Seção */}
+            <button onClick={() => setShowAddSection(true)}
+              className="flex items-center gap-2 px-4 py-3 w-full text-left text-xs transition-colors"
+              style={{ color: '#4b5563', borderTop: '1px solid #2c2e33' }}
+              onMouseEnter={e => { (e.currentTarget.style.color = '#10b981') }}
+              onMouseLeave={e => { (e.currentTarget.style.color = '#4b5563') }}>
+              <Plus size={13} />Adicionar Seção
+            </button>
           </div>
         )}
 
@@ -1122,6 +1170,46 @@ export function ProjectDetailClient({ project: initial, users, highlightTaskId }
             <div className="flex gap-3 px-5 pb-5">
               <button onClick={() => setShowEditProject(false)} className="flex-1 text-sm py-2 rounded-lg" style={{ border: '1px solid #3d3f44', color: '#9ca3af' }}>Cancelar</button>
               <button onClick={saveProject} disabled={saving} className="flex-1 bg-blue-600 text-white text-sm py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50">{saving ? 'Salvando...' : 'Salvar'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== MODAL: ADICIONAR SEÇÃO ===== */}
+      {showAddSection && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
+          <div className="w-full max-w-md rounded-2xl" style={{ backgroundColor: '#292a2e', border: '1px solid #3d3f44' }}>
+            <div className="flex items-center justify-between p-5" style={{ borderBottom: '1px solid #3d3f44' }}>
+              <h3 className="font-semibold" style={{ color: '#f3f4f6' }}>Nova Seção</h3>
+              <button onClick={() => { setShowAddSection(false); setNewSectionForm({ name: '', startDate: '', eventDate: '', endDate: '' }) }} style={{ color: '#6b7280' }}><X size={18} /></button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="text-xs font-medium block mb-1" style={{ color: '#9ca3af' }}>Nome</label>
+                <input autoFocus value={newSectionForm.name} onChange={e => setNewSectionForm(p => ({ ...p, name: e.target.value }))}
+                  onKeyDown={e => { if (e.key === 'Enter') addSection(); if (e.key === 'Escape') setShowAddSection(false) }}
+                  placeholder=""
+                  className="w-full text-sm px-3 py-2 rounded-lg outline-none"
+                  style={{ backgroundColor: '#32343a', border: '1px solid #3d3f44', color: '#f3f4f6' }} />
+              </div>
+              {[
+                { label: 'Data de Início', field: 'startDate' },
+                { label: 'Data do Evento', field: 'eventDate' },
+                { label: 'Data Final', field: 'endDate' },
+              ].map(({ label, field }) => (
+                <div key={field}>
+                  <label className="text-xs font-medium block mb-1" style={{ color: '#9ca3af' }}>{label}</label>
+                  <input type="date" value={(newSectionForm as any)[field]}
+                    onChange={e => setNewSectionForm(p => ({ ...p, [field]: e.target.value }))}
+                    className="w-full text-sm px-3 py-2 rounded-lg outline-none"
+                    style={{ backgroundColor: '#32343a', border: '1px solid #3d3f44', color: '#f3f4f6', colorScheme: 'dark' }} />
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-3 px-5 pb-5">
+              <button onClick={() => { setShowAddSection(false); setNewSectionForm({ name: '', startDate: '', eventDate: '', endDate: '' }) }}
+                className="flex-1 text-sm py-2 rounded-lg" style={{ border: '1px solid #3d3f44', color: '#9ca3af' }}>Cancelar</button>
+              <button onClick={addSection} className="flex-1 bg-blue-600 text-white text-sm py-2 rounded-lg hover:bg-blue-700">Criar Seção</button>
             </div>
           </div>
         </div>

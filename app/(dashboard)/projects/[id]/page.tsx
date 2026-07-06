@@ -20,6 +20,7 @@ async function getProject(id: string) {
           take: 200,
         },
         costs: { orderBy: { createdAt: 'desc' } },
+        sections: { orderBy: { sortOrder: 'asc' } },
       },
     })
   } catch (err) {
